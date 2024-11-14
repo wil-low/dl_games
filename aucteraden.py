@@ -24,7 +24,7 @@ def generate_game():
 	#print("\n======== Finished at move %d =========" % counter)
 	#game.board.print_board()
 	#print("\nTotal score: %d" % game.calculate_score())
-	return (counter, game.calculate_score())
+	return (counter, game.board.calculate_score())
 
 def main():
 	random.seed(42)

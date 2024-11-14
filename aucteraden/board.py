@@ -181,6 +181,22 @@ class Board:
 							longest_chains_by_suit[suit] = (chain, ch_score)
 		return longest_chains_by_suit
 
+	def calculate_score(self):
+		score = self.score
+		for suit, count in self.chips.items():
+			if count == 0 or count == Board.initial_chip_count:
+				score -= 5
+		for card in self.grid:
+			if card is None:
+				score -= 5
+
+		longest_chains = self.find_longest_chains_by_suit()
+		for suit, (chain, ch_score) in longest_chains.items():
+			#print(f"Longest chain for suit {suit}: {list(map(str, chain))}, score: {ch_score}")
+			score += ch_score
+
+		return score
+
 
 class Move:
 	def __init__(self, buy_card_index=None, payment={}, placement=None, churn_market=False):
@@ -270,19 +286,3 @@ class GameState:
 			return has_neighbour
 
 		return True
-
-	def calculate_score(self):
-		score = self.board.score
-		for suit, count in self.board.chips.items():
-			if count == 0 or count == Board.initial_chip_count:
-				score -= 5
-		for card in self.board.grid:
-			if card is None:
-				score -= 5
-
-		longest_chains = self.board.find_longest_chains_by_suit()
-		for suit, (chain, ch_score) in longest_chains.items():
-			#print(f"Longest chain for suit {suit}: {list(map(str, chain))}, score: {ch_score}")
-			score += ch_score
-
-		return score
