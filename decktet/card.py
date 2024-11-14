@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
-class CardType(Enum):
+class CardType(IntEnum):
 	excuse = 0
 	ace = 1
 	number2 = 2
@@ -16,6 +16,7 @@ class CardType(Enum):
 	courts = 11
 	crowns = 12
 
+
 class CardSuit(Enum):
 	moons = 0
 	suns = 1
@@ -24,10 +25,12 @@ class CardSuit(Enum):
 	wyrms = 4
 	knots = 5
 
+
 class CardIdentity(Enum):
 	location = 0
 	personality = 1
 	event = 2
+
 
 class Card:
 	type_map = {
@@ -59,12 +62,13 @@ class Card:
 		self.type = type
 		self.name = name
 		self.suits = set(suits)
+		self.suits_list = suits
 		self.ids = set(identities)
 		self.image = image
 
 	def __str__(self):
 		suits = ""
-		for s in self.suits:
+		for s in self.suits_list:
 			suits += Card.suit_map[s]
 		return "%s %-3s" % (Card.type_map[self.type], suits)
 		#return "%s %-3s: %s" % (Card.type_map[self.type], suits, self.name)

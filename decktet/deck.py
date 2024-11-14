@@ -74,3 +74,7 @@ class Deck:
 		deck = Deck([x for x in deck.cards if not Card.is_extended(x)])
 		return deck
 
+	def take_card(self):
+		if len(self.cards) > 0:
+			return self.cards.pop(0)
+		return None
