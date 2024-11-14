@@ -4,12 +4,6 @@ from decktet.card import Card, CardSuit, CardType
 from decktet.deck import Deck
 
 
-class Point:
-	def __init__(self, col, row):
-		self.col = col
-		self.row = row
-
-
 # Define directions for neighbors (up, down, left, right)
 directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
@@ -96,8 +90,8 @@ class Board:
 			self.chips[suit] -= count
 		return card
 
-	def place_card(self, card, placement):
-		self.grid[placement.col + placement.row * Board.col_count] = card
+	def place_card(self, card, col, row):
+		self.grid[col + row * Board.col_count] = card
 		self.cards_in_grid += 1
 
 	def chain_score(self, chain):
@@ -199,25 +193,25 @@ class Board:
 
 
 class Move:
-	def __init__(self, buy_card_index=None, payment={}, placement=None, churn_market=False):
-		assert (placement is not None) ^ churn_market
+	def __init__(self, buy_card_index=None, payment={}, col=None, row=None, churn_market=False):
 		#assert (buy_card_index is None) ^ (len(payment) == (2 - buy_card_index))
 		self.buy_card_index = buy_card_index
 		self.payment = payment
-		self.placement = placement
+		self.col = col
+		self.row = row
 		self.churn_market = churn_market
 	
 	@classmethod
-	def buy_and_place(cls, buy_card_index, payment, point):
-		return Move(buy_card_index, payment, point, False)
+	def buy_and_place(cls, buy_card_index, payment, col, row):
+		return Move(buy_card_index, payment, col, row, False)
 
 	@classmethod
 	def buy_and_churn(cls, buy_card_index, payment):
-		return Move(buy_card_index, payment, None, True)
+		return Move(buy_card_index, payment, None, None, True)
 
 	@classmethod
 	def churn(cls):
-		return Move(None, {}, None, True)
+		return Move(None, {}, None, None, True)
 	
 	def __str__(self):
 		result = ""
@@ -229,8 +223,8 @@ class Move:
 		for suit, count in self.payment.items():
 			result += "%s:%d, " % (Card.suit_map[suit], count)
 
-		if self.placement is not None:
-			result += "Place card into (%d, %d)" % (self.placement.col, self.placement.row)
+		if self.col is not None:
+			result += "Place card into (%d, %d)" % (self.col, self.row)
 
 		if self.churn_market:
 			result = "Churn market"
@@ -257,28 +251,28 @@ class GameState:
 			next_board.market = []
 			next_board.score -= 3
 		else:
-			next_board.place_card(card, move.placement)
+			next_board.place_card(card, move.col, move.row)
 		return GameState(next_board, self, move)
 	
 	def is_over(self):
 		return len(self.board.deck.cards) == 0 or self.board.cards_in_grid == Board.row_count * Board.col_count
 	
-	def is_valid_move(self, buy_card_index, payment, col, row, churn_market):
-		if churn_market:
+	def is_valid_move(self, move):
+		if move.churn_market:
 			return True
 
-		for suit, count in payment.items():
+		for suit, count in move.payment.items():
 			if self.board.chips[suit] < count:
 				return False
 
-		if self.board.get_card(col, row) is not None:
+		if self.board.get_card(move.col, move.row) is not None:
 			return False
 
-		mcard = self.board.market[buy_card_index]
+		mcard = self.board.market[move.buy_card_index]
 		if self.board.cards_in_grid > 0:
 			has_neighbour = False
 			for dr, dc in directions:
-				gcard = self.board.get_card(col + dc, row + dr)
+				gcard = self.board.get_card(move.col + dc, move.row + dr)
 				if gcard is not None:
 					if (mcard.type == CardType.ace or mcard.type == CardType.crowns) and (gcard.type == CardType.ace or gcard.type == CardType.crowns):
 						return False
