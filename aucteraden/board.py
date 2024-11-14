@@ -16,13 +16,14 @@ directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
 class Board:
 	initial_chip_count = 4
+	col_count = 4
+	row_count = 4
+	standard_deck = Deck.make_standard()
 
 	def __init__(self):
-		self.col_count = 4
-		self.row_count = 4
-		self.grid = [None for _ in range(self.col_count * self.row_count)]
-		self.is_grid_empty = True
-		self.deck = Deck.make_standard()
+		self.grid = [None for _ in range(Board.col_count * Board.row_count)]
+		self.cards_in_grid = 0
+		self.deck = copy.deepcopy(Board.standard_deck)
 		self.score = 0
 		random.shuffle(self.deck.cards)
 		self.market = []
@@ -37,11 +38,11 @@ class Board:
 		self.refill_market(False)
 
 	def get_card(self, col, row):
-		if col < 0 or col >= self.col_count:
+		if col < 0 or col >= Board.col_count:
 			return None
-		if row < 0 or row >= self.row_count:
+		if row < 0 or row >= Board.row_count:
 			return None
-		return self.grid[col + row * self.col_count]
+		return self.grid[col + row * Board.col_count]
 
 	def print_card(self, card):
 		if card is None:
@@ -58,10 +59,10 @@ class Board:
 		print("    ", end="")
 		self.print_market()
 		print()
-		for row in range(self.row_count):
-			for col in range(self.col_count):
+		for row in range(Board.row_count):
+			for col in range(Board.col_count):
 				card = self.get_card(col, row)
-				#card = self.deck.cards[row * self.col_count + col]
+				#card = self.deck.cards[row * Board.col_count + col]
 				self.print_card(card)
 			print()
 			print()
@@ -76,8 +77,8 @@ class Board:
 			card = self.deck.take_card()
 			if card is None:
 				return
-			print("Card for discards: " + str(card) + ", market:")
-			self.print_market()
+			#print("Card for discards: " + str(card) + ", market:")
+			#self.print_market()
 			self.market = [x for x in self.market if not bool(x.suits & card.suits)]
 			self.market.insert(0, card)
 		while len(self.market) < 3:
@@ -96,8 +97,8 @@ class Board:
 		return card
 
 	def place_card(self, card, placement):
-		self.grid[placement.col + placement.row * self.col_count] = card
-		self.is_grid_empty = False
+		self.grid[placement.col + placement.row * Board.col_count] = card
+		self.cards_in_grid += 1
 
 	def chain_score(self, chain):
 		score = 0
@@ -128,7 +129,7 @@ class Board:
 		return score
 
 	def find_longest_chains_by_suit(self):
-		rows, cols = self.row_count, self.col_count
+		rows, cols = Board.row_count, Board.col_count
 		longest_chains_by_suit = {}
 
 		# DFS function to explore chains
@@ -244,29 +245,30 @@ class GameState:
 		return GameState(next_board, self, move)
 	
 	def is_over(self):
-		return len(self.board.deck.cards) == 0 or len([x for x in self.board.grid if x is None]) == 0
+		return len(self.board.deck.cards) == 0 or self.board.cards_in_grid == Board.row_count * Board.col_count
 	
-	def is_valid_move(self, move):
-		if move.churn_market:
+	def is_valid_move(self, buy_card_index, payment, col, row, churn_market):
+		if churn_market:
 			return True
-		for suit, count in move.payment.items():
+
+		for suit, count in payment.items():
 			if self.board.chips[suit] < count:
 				return False
-		if move.placement is not None:
-			col = move.placement.col
-			row = move.placement.row
-			if self.board.get_card(col, row) is not None:
-				return False
-			mcard = self.board.market[move.buy_card_index]
-			if not self.board.is_grid_empty:
-				has_neighbour = False
-				for dr, dc in directions:
-					gcard = self.board.get_card(move.placement.col + dc, move.placement.row + dr)
-					if gcard is not None:
-						has_neighbour = True
-						if (mcard.type == CardType.ace or mcard.type == CardType.crowns) and (gcard.type == CardType.ace or gcard.type == CardType.crowns):
-							return False
-				return has_neighbour
+
+		if self.board.get_card(col, row) is not None:
+			return False
+
+		mcard = self.board.market[buy_card_index]
+		if self.board.cards_in_grid > 0:
+			has_neighbour = False
+			for dr, dc in directions:
+				gcard = self.board.get_card(col + dc, row + dr)
+				if gcard is not None:
+					if (mcard.type == CardType.ace or mcard.type == CardType.crowns) and (gcard.type == CardType.ace or gcard.type == CardType.crowns):
+						return False
+					has_neighbour = True
+			return has_neighbour
+
 		return True
 
 	def calculate_score(self):
@@ -280,7 +282,7 @@ class GameState:
 
 		longest_chains = self.board.find_longest_chains_by_suit()
 		for suit, (chain, ch_score) in longest_chains.items():
-			print(f"Longest chain for suit {suit}: {list(map(str, chain))}, score: {ch_score}")
+			#print(f"Longest chain for suit {suit}: {list(map(str, chain))}, score: {ch_score}")
 			score += ch_score
 
 		return score
