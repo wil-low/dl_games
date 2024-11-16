@@ -15,8 +15,13 @@ class Board:
 	standard_deck = Deck.make_standard()
 
 	def __init__(self):
-		self.grid = [None for _ in range(Board.col_count * Board.row_count)]
-		self.cards_in_grid = 0
+		self.grid = []
+		self.free_cells = set()
+		for row in range(Board.row_count):
+			for col in range(Board.col_count):
+				self.grid.append(None)
+				self.free_cells.add((col, row))
+		self.grid_empty = True
 		self.deck = copy.deepcopy(Board.standard_deck)
 		self.score = 0
 		random.shuffle(self.deck.cards)
@@ -91,8 +96,10 @@ class Board:
 		return card
 
 	def place_card(self, card, col, row):
-		self.grid[col + row * Board.col_count] = card
-		self.cards_in_grid += 1
+		idx = col + row * Board.col_count
+		self.grid[idx] = card
+		self.free_cells.remove((col, row))
+		self.grid_empty = False
 
 	def chain_score(self, chain):
 		score = 0
@@ -251,7 +258,7 @@ class GameState:
 		return GameState(next_board, self, move)
 	
 	def is_over(self):
-		return len(self.board.deck.cards) == 0 or self.board.cards_in_grid == Board.row_count * Board.col_count
+		return len(self.board.deck.cards) == 0 or len(self.board.free_cells) == 0
 	
 	def is_valid_move(self, move, check_payment):
 		if move.churn_market:
@@ -264,7 +271,7 @@ class GameState:
 			return False
 
 		mcard = self.board.market[move.buy_card_index]
-		if self.board.cards_in_grid > 0:
+		if not self.board.grid_empty:
 			has_neighbour = False
 			for dr, dc in directions:
 				gcard = self.board.get_card(move.col + dc, move.row + dr)
