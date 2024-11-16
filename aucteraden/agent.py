@@ -31,13 +31,12 @@ class RandomBot(Agent):
 		for mcard in reversed(game_state.board.market):
 			idx = len(game_state.board.market) - cost - 1
 			for chips in self.chip_combos(mcard, cost):
-				for row in range(Board.row_count):
-					for col in range(Board.col_count):
-						move = Move.buy_and_place(idx, chips, col, row)
-						if game_state.is_valid_move(move, True):
-							candidates.append(move)
+				for col, row in game_state.board.free_cells:
+					move = Move.buy_and_place(idx, chips, col, row)
+					if game_state.is_valid_move(move, True):
+						candidates.append(move)
 			cost += 1
-		print("\nValid moves: " + str(len(candidates)))
+		#print("\nValid moves: " + str(len(candidates)))
 		if len(candidates) == 0:
 			return Move.churn()
 		return random.choice(candidates)

@@ -1,70 +1,92 @@
+import argparse
 import random
-import time
-
 import numpy as np
 from aucteraden.agent import OneMoveScoreBot, RandomBot
 from aucteraden.board import GameState
 from aucteraden.encoders import GameStateEncoder, MoveEncoder
 
 def main():
-	seed = 42
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--seed", "-s", type=int, default=42)
+	parser.add_argument("--num-games", "-n", type=int, default=1000)
+	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
+	parser.add_argument("--single", "-1", action="store_true", help="Generate one game per seed, then increase seed")
+	args = parser.parse_args()
 
 	feature_encoder = GameStateEncoder()
 	label_encoder = MoveEncoder()
 
-	iter_count = 1000
 	MAX_GAME_DURATION = 20
 
 	best_score = -10000000
-	best_iteration = 0
+	best_game = 0
 	sum_score = 0
 	#bot = RandomBot()
 	bot = OneMoveScoreBot(25, 4)
 
 	feature_shape = np.insert(feature_encoder.shape(), 0, MAX_GAME_DURATION)
-	feature_shape = np.insert(feature_shape, 0, iter_count)
+	feature_shape = np.insert(feature_shape, 0, args.num_games)
 	features = np.zeros(feature_shape, dtype=np.int8)
 	label_shape = np.insert(label_encoder.shape(), 0, MAX_GAME_DURATION)
-	label_shape = np.insert(label_shape, 0, iter_count)
+	label_shape = np.insert(label_shape, 0, args.num_games)
 	labels = np.zeros(label_shape, dtype=np.int8)
 
-	for i in range(iter_count):
-		print(f"\n==== Game {i} ====")
-		random.seed(seed)
-
-		game = GameState.new_game()
-
-		counter = 0
-		random.seed(i)
-		while not game.is_over():
-			#print("\n======== Move %d =========" % counter)
-			#game.board.print_board()
-			features[i][counter] = feature_encoder.encode(game.board)
-
-			bot_move = bot.select_move(game)
-			#print(bot_move)
-			labels[i][counter] = label_encoder.encode(bot_move)
-
-			game = game.apply_move(bot_move)
-			game.board.refill_market(True)
-			counter += 1
-
-		#print("\n======== Finished at move %d =========" % counter)
-		game.board.print_board()
-		score = game.board.calculate_score()
-		print(f"{i};score;{score}")
-
-		sum_score += score
-		if score > best_score:
-			best_score = score
-			best_iteration = i
-	
-	features_fn = "aucteraden/generated_games/F_%05d_%05d" % (seed, iter_count)
+	features_fn = "aucteraden/generated_games/F_%05d_%05d" % (args.seed, args.num_games)
 	labels_fn = features_fn.replace("/F_", "/L_")
-	np.save(features_fn, features)
-	np.save(labels_fn, labels)
+	output_fn = features_fn.replace("/F_", "/")
+	if args.single:
+		features_fn += "s"
+		labels_fn += "s"
+		output_fn += "s"
+	output_fn += ".log"
 
-	print(f"\nMax score = {best_score} on #{best_iteration}, avg score = {sum_score / iter_count}")
+	with open(output_fn, "w") as file:
+		for i in range(args.num_games):
+			print(f"\n======== Game {i} ========", file=file)
+			
+			game = None
+			if args.single:
+				random.seed(args.seed + i)
+				game = GameState.new_game()
+				random.seed(args.seed + i)
+			else:
+				random.seed(args.seed)
+				game = GameState.new_game()
+				random.seed(i)
+
+			counter = 0
+			while not game.is_over():
+				if args.verbose:
+					print(f"\n== Move {counter} ==", file=file)
+					print(game.board, file=file)
+				
+				features[i][counter] = feature_encoder.encode(game.board)
+				bot_move = bot.select_move(game)
+
+				if args.verbose:
+					print(bot_move, file=file)
+
+				labels[i][counter] = label_encoder.encode(bot_move)
+				game = game.apply_move(bot_move)
+				game.board.refill_market(True)
+				counter += 1
+			if args.verbose:
+				print(f"\n==== Game {i} finished at move {counter} ====", file=file)
+			print(game.board, file=file)
+			score = game.board.calculate_score()
+			print(f"{i};score;{score}", file=file)
+
+			sum_score += score
+			if score > best_score:
+				best_score = score
+				best_game = i
+		
+		np.save(features_fn, features)
+		np.save(labels_fn, labels)
+
+		print(f"\nMax score = {best_score} on #{best_game}, avg score = {sum_score / args.num_games}", file=file)
+	
+	print(f"Completed {args.seed}, {args.num_games}")
 
 if __name__ == "__main__":
 	main()

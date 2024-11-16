@@ -43,33 +43,32 @@ class Board:
 			return None
 		return self.grid[col + row * Board.col_count]
 
-	def print_card(self, card):
+	def str_card(self, card):
 		if card is None:
-			print("." * 6, end="  ")
-		else:
-			print(card, end="  ")
+			return "." * 6 + "  "
+		return f"{card}  "
 
-	def print_board(self):
-		print("Deck: %d      Chips: " % len(self.deck.cards), end="")
+	def __str__(self):
+		s = "Deck: %d      Chips: " % len(self.deck.cards)
 		for suit, count in self.chips.items():
-			print("%s:%d" % (Card.suit_map[suit], count), end="  ")
-		print()
-		print()
-		print("    ", end="")
-		self.print_market()
-		print()
+			s += "%s:%d  " % (Card.suit_map[suit], count)
+		s += "\n\n    "
+		s += str()
+		s += self.str_market() + "\n"
 		for row in range(Board.row_count):
 			for col in range(Board.col_count):
 				card = self.get_card(col, row)
 				#card = self.deck.cards[row * Board.col_count + col]
-				self.print_card(card)
-			print()
-			print()
+				s += self.str_card(card)
+			s += "\n\n"
+		return s
 
-	def print_market(self):
+	def str_market(self):
+		s = ""
 		for mcard in self.market:
-			self.print_card(mcard)
-		print()
+			s += self.str_card(mcard)
+		s += "\n"
+		return s
 
 	def refill_market(self, is_discard):
 		if is_discard:
