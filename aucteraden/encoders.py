@@ -1,6 +1,6 @@
 import numpy as np
-from aucteraden.board import Board
-from decktet.card import CardSuit
+from aucteraden.board import Board, Move
+from decktet.card import Card, CardSuit
 from encoders.base import Encoder
 
 
@@ -28,8 +28,21 @@ class GameStateEncoder(Encoder):
 					self.encode_card(mtx, card, col, row + GameStateEncoder.FIRST_BOARD_ROW)
 		return mtx
 
-	def decode(self):
-		raise NotImplementedError
+	def decode(self, mtx):
+		board = Board()
+		for idx in range(3):
+			card = self.decode_card(mtx, idx, 0)
+			if card is not None:
+				board.market.insert(0, card)
+		board.chips = {}
+		for suit in CardSuit:
+			board.chips[suit] = mtx[suit.value][GameStateEncoder.CHIP_COL][GameStateEncoder.CHIP_ROW]
+		for row in range(Board.row_count):
+			for col in range(Board.col_count):
+				card = self.decode_card(mtx, col, row + GameStateEncoder.FIRST_BOARD_ROW)
+				if card:
+					board.place_card(card, col, row)
+		return board
 
 	def shape(self):
 		return len(CardSuit), 4, 5  # suit, col, row
@@ -37,6 +50,18 @@ class GameStateEncoder(Encoder):
 	def encode_card(self, mtx, card, col, row):
 		for suit in card.suits_list:
 			mtx[suit.value][col][row] = card.type
+
+	def decode_card(self, mtx, col, row):
+		suits = []
+		type = None
+		for suit in CardSuit:
+			t = mtx[suit.value][col][row]
+			if t > 0:
+				suits.append(suit)
+				type = t
+		if type is not None:
+			return Card(type, "?", suits)
+		return None
 
 
 class MoveEncoder(Encoder):
@@ -61,8 +86,45 @@ class MoveEncoder(Encoder):
 			mtx[MoveEncoder.BOARD_ROW_OFFSET + move.row] = 1
 		return mtx
 
-	def decode(self):
-		raise NotImplementedError
+	def decode(self, mtx):
+		if mtx[MoveEncoder.CHURN_OFFSET] == 1:
+			return Move.churn()
+		buy_card_index = None
+		payment = {}
+		col = None
+		row = None
+		for idx in range(3):
+			if mtx[MoveEncoder.BUY_OFFSET + idx] == 1:
+				buy_card_index = idx
+				break
+		for suit in CardSuit:
+			val = mtx[MoveEncoder.CHIP_OFFSET + suit.value]
+			if val > 0:
+				payment[suit] = val
+		for idx in range(4):
+			if mtx[MoveEncoder.BOARD_COL_OFFSET + idx] == 1:
+				col = idx
+				break
+		for idx in range(4):
+			if mtx[MoveEncoder.BOARD_ROW_OFFSET + idx] == 1:
+				row = idx
+				break
+		return Move.buy_and_place(buy_card_index, payment, col, row)
+
+	def decode_predict(self, mtx):
+		fmt = "%.4f"
+		s = "Churn: " + fmt % mtx[MoveEncoder.CHURN_OFFSET] + "\n"
+		for idx in range(3):
+			s += f"Buy #{idx}: " + fmt % mtx[MoveEncoder.BUY_OFFSET + idx] + "\n"
+		for suit in CardSuit:
+			s += f"{Card.suit_map[suit]}: " + fmt % mtx[MoveEncoder.CHIP_OFFSET + suit.value] + "\n"
+		s += "        "
+		for idx in range(4):
+			s += fmt % mtx[MoveEncoder.BOARD_COL_OFFSET + idx] + "  "
+		s += "\n"
+		for idx in range(4):
+			s += fmt % mtx[MoveEncoder.BOARD_ROW_OFFSET + idx] + "\n"
+		return s
 
 	def shape(self):
 		return (MoveEncoder.BOARD_ROW_OFFSET + 4,)

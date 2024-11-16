@@ -22,10 +22,14 @@ class Board:
 				self.grid.append(None)
 				self.free_cells.add((col, row))
 		self.grid_empty = True
-		self.deck = copy.deepcopy(Board.standard_deck)
 		self.score = 0
-		random.shuffle(self.deck.cards)
 		self.market = []
+		self.chips = {}
+		self.deck = Deck([])
+
+	def prepare(self):
+		self.deck = copy.deepcopy(Board.standard_deck)
+		random.shuffle(self.deck.cards)
 		self.chips = {
 			CardSuit.moons:  Board.initial_chip_count,
 			CardSuit.suns:   Board.initial_chip_count,
@@ -35,7 +39,7 @@ class Board:
 			CardSuit.knots:  Board.initial_chip_count
 		}
 		self.refill_market(False)
-
+		
 	def get_card(self, col, row):
 		if col < 0 or col >= Board.col_count:
 			return None
@@ -242,6 +246,7 @@ class GameState:
 	@classmethod
 	def new_game(cls):
 		board = Board()
+		board.prepare()
 		return GameState(board, None, None)
 
 	def apply_move(self, move):
