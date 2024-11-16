@@ -206,10 +206,6 @@ class Move:
 		return Move(buy_card_index, payment, col, row, False)
 
 	@classmethod
-	def buy_and_churn(cls, buy_card_index, payment):
-		return Move(buy_card_index, payment, None, None, True)
-
-	@classmethod
 	def churn(cls):
 		return Move(None, {}, None, None, True)
 	
@@ -257,13 +253,12 @@ class GameState:
 	def is_over(self):
 		return len(self.board.deck.cards) == 0 or self.board.cards_in_grid == Board.row_count * Board.col_count
 	
-	def is_valid_move(self, move):
+	def is_valid_move(self, move, check_payment):
 		if move.churn_market:
 			return True
 
-		for suit, count in move.payment.items():
-			if self.board.chips[suit] < count:
-				return False
+		if check_payment and not self.is_valid_payment(move.payment):
+			return False
 
 		if self.board.get_card(move.col, move.row) is not None:
 			return False
@@ -279,4 +274,10 @@ class GameState:
 					has_neighbour = True
 			return has_neighbour
 
+		return True
+	
+	def is_valid_payment(self, payment):
+		for suit, count in payment.items():
+			if self.board.chips[suit] < count:
+				return False
 		return True

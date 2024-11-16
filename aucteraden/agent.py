@@ -9,21 +9,35 @@ class Agent:
 
 	def select_move(self, game_state):
 		raise NotImplementedError()
-
+	
+	def chip_combos(self, card, cost):
+		suit_count = len(card.suits_list)
+		if cost == 1:
+			if suit_count == 1:
+				return [{card.suits_list[0]: 1}]
+			elif suit_count == 2:
+				return [{card.suits_list[0]: 1}, {card.suits_list[1]: 1}]
+		elif cost == 2:
+			if suit_count == 1:
+				return [{card.suits_list[0]: 2}]
+			elif suit_count == 2:
+				return [{card.suits_list[0]: 1, card.suits_list[1]: 1}, {card.suits_list[0]: 2}, {card.suits_list[1]: 2}]
+		return [{}]
 
 class RandomBot(Agent):
 	def select_move(self, game_state):
 		candidates = []
-		idx = 0
-		for mcard in game_state.board.market:
-			for suit in mcard.suits_list:
+		cost = 0
+		for mcard in reversed(game_state.board.market):
+			idx = len(game_state.board.market) - cost - 1
+			for chips in self.chip_combos(mcard, cost):
 				for row in range(Board.row_count):
 					for col in range(Board.col_count):
-						move = Move(2 - idx, {suit: idx}, col, row, False)
-						if game_state.is_valid_move(move):
+						move = Move.buy_and_place(idx, chips, col, row)
+						if game_state.is_valid_move(move, True):
 							candidates.append(move)
-			idx += 1
-		#print("\nValid moves: " + str(len(candidates)))
+			cost += 1
+		print("\nValid moves: " + str(len(candidates)))
 		if len(candidates) == 0:
 			return Move.churn()
 		return random.choice(candidates)
@@ -38,22 +52,30 @@ class OneMoveScoreBot(Agent):
 	def select_move(self, game_state):
 		candidates = []
 		best_score = -100000000
-		idx = 0
-		for mcard in game_state.board.market:
-			for suit in mcard.suits_list:
+		cost = 0
+		for mcard in reversed(game_state.board.market):
+			idx = len(game_state.board.market) - cost - 1
+			#print(f"select_move {idx}: {mcard}, cost {cost}")
+			for chips in self.chip_combos(mcard, cost):
 				for row in range(Board.row_count):
 					for col in range(Board.col_count):
-						move = Move(2 - idx, {suit: idx}, col, row, False)
-						if game_state.is_valid_move(move):
+						move = Move.buy_and_place(idx, chips, col, row)
+						if game_state.is_valid_move(move, True):
 							next_state = game_state.apply_move(move)
 							next_score = next_state.board.calculate_score()
+							#print(f"select_move {idx}: ({col}, {row}), {mcard}, cost {cost}, score {next_score}: {next_score >= best_score}")
 							if next_score >= best_score:
 								candidates.append(move)
 								best_score = next_score
-								if len(candidates) == self.max_candidates_count:
-									return random.choice(candidates[-self.upper_limit:])
-			idx += 1
-		#print("\nValid moves: " + str(len(candidates)))
+								if game_state.board.cards_in_grid > 0 and len(candidates) == self.max_candidates_count:
+									return self.select_candidate(game_state, candidates)
+			cost += 1
+		return self.select_candidate(game_state, candidates)
+	
+	def select_candidate(self, game_state, candidates):
+		print("\nValid moves: " + str(len(candidates)))
 		if len(candidates) == 0:
 			return Move.churn()
-		return random.choice(candidates[-self.upper_limit:])
+		if game_state.board.cards_in_grid > 0:
+			return random.choice(candidates[-self.upper_limit:])
+		return random.choice(candidates)
