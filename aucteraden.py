@@ -31,14 +31,16 @@ def main():
 	label_shape = np.insert(label_shape, 0, args.num_games)
 	labels = np.zeros(label_shape, dtype=np.int8)
 
-	features_fn = "aucteraden/generated_games/F_%05d_%05d" % (args.seed, args.num_games)
-	labels_fn = features_fn.replace("/F_", "/L_")
-	output_fn = features_fn.replace("/F_", "/")
+	base_fn = "%05d_%05d" % (args.seed, args.num_games)
 	if args.single:
-		features_fn += "s"
-		labels_fn += "s"
-		output_fn += "s"
-	output_fn += ".log"
+		base_fn = f"inc_seed/{base_fn}"
+	else:
+		base_fn = f"fix_seed/{base_fn}"
+	base_fn = f"aucteraden/generated_games/{base_fn}"
+
+	features_fn = f"{base_fn}F"
+	labels_fn   = f"{base_fn}L"
+	output_fn =   f"{base_fn}.log"
 
 	with open(output_fn, "w") as file:
 		for i in range(args.num_games):
