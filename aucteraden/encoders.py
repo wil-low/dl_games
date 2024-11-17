@@ -86,7 +86,7 @@ class MoveEncoder(Encoder):
 			mtx[MoveEncoder.BOARD_ROW_OFFSET + move.row] = 1
 		return mtx
 
-	def decode(self, mtx):
+	def decode(self, mtx, grid16 = False):
 		if mtx[MoveEncoder.CHURN_OFFSET] == 1:
 			return Move.churn()
 		buy_card_index = None
@@ -101,14 +101,21 @@ class MoveEncoder(Encoder):
 			val = mtx[MoveEncoder.CHIP_OFFSET + suit.value]
 			if val > 0:
 				payment[suit] = val
-		for idx in range(4):
-			if mtx[MoveEncoder.BOARD_COL_OFFSET + idx] == 1:
-				col = idx
-				break
-		for idx in range(4):
-			if mtx[MoveEncoder.BOARD_ROW_OFFSET + idx] == 1:
-				row = idx
-				break
+		if grid16:
+			for idx in range(16):
+				if mtx[MoveEncoder.BOARD_COL_OFFSET + idx] == 1:
+					col = idx % Board.col_count
+					row = idx // Board.row_count
+					break
+		else:
+			for idx in range(4):
+				if mtx[MoveEncoder.BOARD_COL_OFFSET + idx] == 1:
+					col = idx
+					break
+			for idx in range(4):
+				if mtx[MoveEncoder.BOARD_ROW_OFFSET + idx] == 1:
+					row = idx
+					break
 		return Move.buy_and_place(buy_card_index, payment, col, row)
 
 	def decode_predict(self, mtx):
