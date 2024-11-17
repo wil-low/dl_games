@@ -1,7 +1,7 @@
 import argparse
-import random
+import tensorflow as tf
 import numpy as np
-from keras.models import Sequential
+from keras.models import Model
 from keras.layers import Dense, Input
 from aucteraden.agent import OneMoveScoreBot, RandomBot
 from aucteraden.board import GameState
@@ -59,36 +59,69 @@ def main():
 	X_train, X_test = X[:train_samples], X[train_samples:]
 	Y_train, Y_test = Y[:train_samples], Y[train_samples:]
 
-	model = Sequential()
-	model.add(Input(shape=(6 * 4 * 5,)))
-	model.add(Dense(256, activation="relu"))
-	model.add(Dense(64, activation="relu"))
-	model.add(Dense(18, activation="sigmoid"))
+	# Define input
+	input_layer = Input(shape=(6 * 4 * 5,))
+
+	# Common hidden layers
+	hidden1 = Dense(256, activation='relu')(input_layer)
+	hidden2 = Dense(64, activation='relu')(hidden1)
+
+	# Outputs
+	churn_output = Dense(1, activation="sigmoid", name="churn_output")(hidden2)
+	buy_output   = Dense(3, activation="softmax", name="buy_output")(hidden2)
+	chip_output  = Dense(6, activation="sigmoid", name="chip_output")(hidden2)
+	col_output   = Dense(4, activation="softmax", name="col_output")(hidden2)
+	row_output   = Dense(4, activation="softmax", name="row_output")(hidden2)
+
+	# Combine into a single model
+	model = Model(inputs=input_layer, outputs=[churn_output, buy_output, chip_output, col_output, row_output])
+
+	# Compile the model with separate loss functions for each output
+	model.compile(
+		optimizer="adam",
+		loss={
+			"churn_output": "binary_crossentropy",
+			"buy_output": "categorical_crossentropy",
+			"chip_output": "binary_crossentropy",
+			"col_output": "categorical_crossentropy",
+			"row_output": "categorical_crossentropy",
+		},
+		metrics={
+			"churn_output": "accuracy",
+			"buy_output": "accuracy",
+			"chip_output": "accuracy",
+			"col_output": "accuracy",
+			"row_output": "accuracy",
+		}
+	)
 	model.summary()
 
-	model.compile(loss="mean_squared_error", optimizer="sgd", metrics=["accuracy"])
+	Y_train_split = tf.split(Y_train, [1, 3, 6, 4, 4], axis=1)
+	Y_test_split = tf.split(Y_test, [1, 3, 6, 4, 4], axis=1)
 
-	model.fit(X_train, Y_train, batch_size=16, epochs=50, verbose=1, validation_data=(X_test, Y_test))
+	model.fit(X_train, Y_train_split, batch_size=32, epochs=50, verbose=1, validation_data=(X_test, Y_test_split))
 
-	score = model.evaluate(X_test, Y_test, verbose=0)
-	print("Test loss:", score[0])
-	print("Test accuracy:", score[1])
+	score = model.evaluate(X_test, Y_test_split, verbose=0)
+	print("Test metrics:", score)
 
 	col = 5
-	row = 15
-	for i in range(20):
-		board = feature_encoder.decode(X_load[col][i])
-		move = label_encoder.decode(Y_load[col][i])
-		if not move.churn_market and move.buy_card_index is not None:
-			print(f"==== Board for Game {col}, turn {i}: ====\n{board}")
-			print(f"Move: {move}\n")
+	row = 9
+	board = feature_encoder.decode(X_load[col][row])
+	move = label_encoder.decode(Y_load[col][row])
+	print(f"==== Board for Game {col}, turn {row}: ====\n{board}")
+	print(f"Move: {move}\n")
 
 	predict_board = X_load[col][row].reshape(1, 6 * 4 * 5)
 	print(predict_board)
 	move_probs = model.predict(predict_board)
-	print(f"move_probs.shape = {move_probs.shape}")
-	print(move_probs[0])
-	print(label_encoder.decode_predict(move_probs[0]))
+
+	# Step 1: Flatten each tensor in the list
+	flattened_tensors = [tf.reshape(t, [-1]) for t in move_probs]
+	# Step 2: Concatenate all flattened tensors into a single tensor
+	result = tf.concat(flattened_tensors, axis=0)
+
+	print(f"\n==== Move prediction for Game {col}, turn {row}: ====")
+	print(label_encoder.decode_predict(result))
 
 if __name__ == "__main__":
 	main()
