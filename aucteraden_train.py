@@ -1,4 +1,6 @@
 import argparse
+import os
+import random
 import tensorflow as tf
 import numpy as np
 from keras.models import Model
@@ -43,7 +45,21 @@ def main():
 	features_fn = f"{base_fn}F.npy"
 	labels_fn   = f"{base_fn}L.npy"
 
-	np.random.seed(args.seed)
+	checkpoint_path = "aucteraden/training_1/cp.weights.h5"
+	checkpoint_dir = os.path.dirname(checkpoint_path)
+	# Create a callback that saves the model's weights
+	cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
+
+	# Set the random seed for reproducibility
+	seed_value = 42
+	# Python random seed
+	random.seed(seed_value)
+	# NumPy random seed
+	np.random.seed(seed_value)
+	# TensorFlow random seed
+	tf.random.set_seed(seed_value)
+	# Optional: Set the environment variable to ensure deterministic operations
+	os.environ['PYTHONHASHSEED'] = str(seed_value)
 
 	X_load = np.load(features_fn)
 	Y_load = np.load(labels_fn)
@@ -81,10 +97,17 @@ def main():
 		optimizer="adam",
 		loss={
 			"churn_output": "binary_crossentropy",
-			"buy_output": "categorical_crossentropy",
+			"buy_output": "binary_crossentropy",
 			"chip_output": "binary_crossentropy",
-			"col_output": "categorical_crossentropy",
-			"row_output": "categorical_crossentropy",
+			"col_output": "binary_crossentropy",
+			"row_output": "binary_crossentropy",
+		},
+		loss_weights={
+			"churn_output": 1.0,
+			"buy_output": 1.0,
+			"chip_output": 1.0,
+			"col_output": 1.0,
+			"row_output": 1.0,
 		},
 		metrics={
 			"churn_output": "accuracy",
@@ -95,25 +118,34 @@ def main():
 		}
 	)
 	model.summary()
+	#model.load_weights(checkpoint_path)
 
 	Y_train_split = tf.split(Y_train, [1, 3, 6, 4, 4], axis=1)
 	Y_test_split = tf.split(Y_test, [1, 3, 6, 4, 4], axis=1)
 
-	model.fit(X_train, Y_train_split, batch_size=32, epochs=50, verbose=1, validation_data=(X_test, Y_test_split))
+	model.fit(X_train, Y_train_split, batch_size=32, epochs=32, verbose=1, validation_data=(X_test, Y_test_split), callbacks=[cp_callback])
 
-	score = model.evaluate(X_test, Y_test_split, verbose=0)
-	print("Test metrics:", score)
+	metrics = model.evaluate(X_test, Y_test_split, verbose=0)
 
-	col = 5
-	row = 9
+	# Define your metric names (as per your model)
+	metric_names = model.metrics_names
+
+	# Pretty print the results
+	print(f"\nModel Evaluation Results:")
+	for name, metric in zip(metric_names, metrics):
+		print(f"{name}: {metric:.4f}")
+
+	col = 993
+	row = 10
 	board = feature_encoder.decode(X_load[col][row])
 	move = label_encoder.decode(Y_load[col][row])
-	print(f"==== Board for Game {col}, turn {row}: ====\n{board}")
+	print(f"\n==== Board for Game {col}, turn {row}: ====\n{board}")
 	print(f"Move: {move}\n")
 
 	predict_board = X_load[col][row].reshape(1, 6 * 4 * 5)
-	print(predict_board)
+	#print(predict_board)
 	move_probs = model.predict(predict_board)
+	print("move_probs: ", move_probs)
 
 	# Step 1: Flatten each tensor in the list
 	flattened_tensors = [tf.reshape(t, [-1]) for t in move_probs]
