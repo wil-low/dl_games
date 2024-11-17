@@ -69,7 +69,6 @@ class MoveEncoder(Encoder):
 	BUY_OFFSET = 1
 	CHIP_OFFSET = 4
 	BOARD_COL_OFFSET = 10
-	BOARD_ROW_OFFSET = 14
 
 	def name(self):
 		return "MoveEncoder"
@@ -82,11 +81,10 @@ class MoveEncoder(Encoder):
 			mtx[MoveEncoder.BUY_OFFSET + move.buy_card_index] = 1
 			for suit, count in move.payment.items():
 				mtx[MoveEncoder.CHIP_OFFSET + suit.value] = count
-			mtx[MoveEncoder.BOARD_COL_OFFSET + move.col] = 1
-			mtx[MoveEncoder.BOARD_ROW_OFFSET + move.row] = 1
+			mtx[MoveEncoder.BOARD_COL_OFFSET + move.col + move.row * Board.col_count] = 1
 		return mtx
 
-	def decode(self, mtx, grid16 = False):
+	def decode(self, mtx):
 		if mtx[MoveEncoder.CHURN_OFFSET] == 1:
 			return Move.churn()
 		buy_card_index = None
@@ -101,21 +99,11 @@ class MoveEncoder(Encoder):
 			val = mtx[MoveEncoder.CHIP_OFFSET + suit.value]
 			if val > 0:
 				payment[suit] = val
-		if grid16:
-			for idx in range(16):
-				if mtx[MoveEncoder.BOARD_COL_OFFSET + idx] == 1:
-					col = idx % Board.col_count
-					row = idx // Board.row_count
-					break
-		else:
-			for idx in range(4):
-				if mtx[MoveEncoder.BOARD_COL_OFFSET + idx] == 1:
-					col = idx
-					break
-			for idx in range(4):
-				if mtx[MoveEncoder.BOARD_ROW_OFFSET + idx] == 1:
-					row = idx
-					break
+		for idx in range(16):
+			if mtx[MoveEncoder.BOARD_COL_OFFSET + idx] == 1:
+				col = idx % Board.col_count
+				row = idx // Board.row_count
+				break
 		return Move.buy_and_place(buy_card_index, payment, col, row)
 
 	def decode_predict(self, mtx):
@@ -125,13 +113,11 @@ class MoveEncoder(Encoder):
 			s += f"Buy #{idx}: " + fmt % mtx[MoveEncoder.BUY_OFFSET + idx] + "\n"
 		for suit in CardSuit:
 			s += f"{Card.suit_map[suit]}: " + fmt % mtx[MoveEncoder.CHIP_OFFSET + suit.value] + "\n"
-		s += "        "
-		for idx in range(4):
-			s += fmt % mtx[MoveEncoder.BOARD_COL_OFFSET + idx] + "  "
-		s += "\n"
-		for idx in range(4):
-			s += fmt % mtx[MoveEncoder.BOARD_ROW_OFFSET + idx] + "\n"
+		for row in range(4):
+			for col in range(4):
+				s += fmt % mtx[MoveEncoder.BOARD_COL_OFFSET + col + row * Board.col_count] + "  "
+			s += "\n"
 		return s
 
 	def shape(self):
-		return (MoveEncoder.BOARD_ROW_OFFSET + 4,)
+		return (MoveEncoder.BOARD_COL_OFFSET + 16,)

@@ -40,7 +40,7 @@ def main():
 		base_fn = f"inc_seed/{base_fn}"
 	else:
 		base_fn = f"fix_seed/{base_fn}"
-	base_fn = f"aucteraden/generated_games/{base_fn}"
+	base_fn = f"aucteraden/generated_games2/{base_fn}"
 
 	features_fn = f"{base_fn}F.npy"
 	labels_fn   = f"{base_fn}L.npy"
@@ -65,8 +65,8 @@ def main():
 	Y_load = np.load(labels_fn)
 	samples = X_load.shape[0]
 
-	X = X_load.reshape(samples * 20, 6 * 4 * 5)
-	Y = Y_load.reshape(samples * 20, 18)
+	X = X_load.reshape(samples, 6 * 4 * 5)
+	Y = Y_load
 
 	print(X[0])
 	print(Y[0])
@@ -86,11 +86,11 @@ def main():
 	churn_output = Dense(1, activation="sigmoid", name="churn_output")(hidden2)
 	buy_output   = Dense(3, activation="softmax", name="buy_output")(hidden2)
 	chip_output  = Dense(6, activation="sigmoid", name="chip_output")(hidden2)
-	col_output   = Dense(4, activation="softmax", name="col_output")(hidden2)
-	row_output   = Dense(4, activation="softmax", name="row_output")(hidden2)
+	place_output = Dense(16, activation="softmax", name="place_output")(hidden2)
+
 
 	# Combine into a single model
-	model = Model(inputs=input_layer, outputs=[churn_output, buy_output, chip_output, col_output, row_output])
+	model = Model(inputs=input_layer, outputs=[churn_output, buy_output, chip_output, place_output])
 
 	# Compile the model with separate loss functions for each output
 	model.compile(
@@ -99,31 +99,28 @@ def main():
 			"churn_output": "binary_crossentropy",
 			"buy_output": "binary_crossentropy",
 			"chip_output": "binary_crossentropy",
-			"col_output": "binary_crossentropy",
-			"row_output": "binary_crossentropy",
+			"place_output": "binary_crossentropy",
 		},
 		loss_weights={
 			"churn_output": 1.0,
 			"buy_output": 1.0,
 			"chip_output": 1.0,
-			"col_output": 1.0,
-			"row_output": 1.0,
+			"place_output": 1.0,
 		},
 		metrics={
 			"churn_output": "accuracy",
 			"buy_output": "accuracy",
 			"chip_output": "accuracy",
-			"col_output": "accuracy",
-			"row_output": "accuracy",
+			"place_output": "accuracy",
 		}
 	)
 	model.summary()
-	#model.load_weights(checkpoint_path)
+	model.load_weights(checkpoint_path)
 
-	Y_train_split = tf.split(Y_train, [1, 3, 6, 4, 4], axis=1)
-	Y_test_split = tf.split(Y_test, [1, 3, 6, 4, 4], axis=1)
+	Y_train_split = tf.split(Y_train, [1, 3, 6, 16], axis=1)
+	Y_test_split = tf.split(Y_test, [1, 3, 6, 16], axis=1)
 
-	model.fit(X_train, Y_train_split, batch_size=32, epochs=32, verbose=1, validation_data=(X_test, Y_test_split), callbacks=[cp_callback])
+	#model.fit(X_train, Y_train_split, batch_size=32, epochs=50, verbose=1, validation_data=(X_test, Y_test_split), callbacks=[cp_callback])
 
 	metrics = model.evaluate(X_test, Y_test_split, verbose=0)
 
@@ -135,14 +132,13 @@ def main():
 	for name, metric in zip(metric_names, metrics):
 		print(f"{name}: {metric:.4f}")
 
-	col = 993
-	row = 10
-	board = feature_encoder.decode(X_load[col][row])
-	move = label_encoder.decode(Y_load[col][row])
-	print(f"\n==== Board for Game {col}, turn {row}: ====\n{board}")
+	turn = 23
+	board = feature_encoder.decode(X_load[turn])
+	move = label_encoder.decode(Y_load[turn])
+	print(f"\n==== Board for turn {turn}: ====\n{board}")
 	print(f"Move: {move}\n")
 
-	predict_board = X_load[col][row].reshape(1, 6 * 4 * 5)
+	predict_board = X_load[turn].reshape(1, 6 * 4 * 5)
 	#print(predict_board)
 	move_probs = model.predict(predict_board)
 	print("move_probs: ", move_probs)
@@ -152,7 +148,7 @@ def main():
 	# Step 2: Concatenate all flattened tensors into a single tensor
 	result = tf.concat(flattened_tensors, axis=0)
 
-	print(f"\n==== Move prediction for Game {col}, turn {row}: ====")
+	print(f"\n==== Move prediction for turn {turn}: ====")
 	print(label_encoder.decode_predict(result))
 
 if __name__ == "__main__":

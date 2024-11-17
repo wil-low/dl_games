@@ -24,24 +24,21 @@ def main():
 	#bot = RandomBot()
 	bot = OneMoveScoreBot(25, 4)
 
-	feature_shape = np.insert(feature_encoder.shape(), 0, MAX_GAME_DURATION)
-	feature_shape = np.insert(feature_shape, 0, args.num_games)
-	features = np.zeros(feature_shape, dtype=np.int8)
-	label_shape = np.insert(label_encoder.shape(), 0, MAX_GAME_DURATION)
-	label_shape = np.insert(label_shape, 0, args.num_games)
-	labels = np.zeros(label_shape, dtype=np.int8)
+	features = []
+	labels = []
 
 	base_fn = "%05d_%05d" % (args.seed, args.num_games)
 	if args.single:
 		base_fn = f"inc_seed/{base_fn}"
 	else:
 		base_fn = f"fix_seed/{base_fn}"
-	base_fn = f"aucteraden/generated_games/{base_fn}"
+	base_fn = f"aucteraden/generated_games2/{base_fn}"
 
 	features_fn = f"{base_fn}F"
 	labels_fn   = f"{base_fn}L"
 	output_fn =   f"{base_fn}.log"
 
+	counter = 0
 	with open(output_fn, "w") as file:
 		for i in range(args.num_games):
 			print(f"\n======== Game {i} ========", file=file)
@@ -56,24 +53,25 @@ def main():
 				game = GameState.new_game()
 				random.seed(i)
 
-			counter = 0
+			turn_counter = 0
 			while not game.is_over():
 				if args.verbose:
-					print(f"\n== Move {counter} ==", file=file)
+					print(f"\n== Move {counter} ({turn_counter})==", file=file)
 					print(game.board, file=file)
 				
-				features[i][counter] = feature_encoder.encode(game.board)
+				features.append(feature_encoder.encode(game.board))
 				bot_move = bot.select_move(game)
 
 				if args.verbose:
 					print(bot_move, file=file)
 
-				labels[i][counter] = label_encoder.encode(bot_move)
+				labels.append(label_encoder.encode(bot_move))
 				game = game.apply_move(bot_move)
 				game.board.refill_market(True)
 				counter += 1
+				turn_counter += 1
 			if args.verbose:
-				print(f"\n==== Game {i} finished at move {counter} ====", file=file)
+				print(f"\n==== Game {i} finished at move {counter} ({turn_counter}) ====", file=file)
 			print(game.board, file=file)
 			score = game.board.calculate_score()
 			print(f"{i};score;{score}", file=file)
@@ -83,8 +81,8 @@ def main():
 				best_score = score
 				best_game = i
 		
-		np.save(features_fn, features)
-		np.save(labels_fn, labels)
+		np.save(features_fn, np.stack(features))
+		np.save(labels_fn, np.stack(labels))
 
 		print(f"\nMax score = {best_score} on #{best_game}, avg score = {sum_score / args.num_games}", file=file)
 	
