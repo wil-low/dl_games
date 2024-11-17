@@ -10,7 +10,7 @@ def main():
 	parser.add_argument("--seed", "-s", type=int, default=42)
 	parser.add_argument("--num-games", "-n", type=int, default=1000)
 	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
-	parser.add_argument("--single", "-1", action="store_true", help="Generate one game per seed, then increase seed")
+	parser.add_argument("--single", "-1", action="store_true", help="Generate one game per seed (inc_seed)")
 	args = parser.parse_args()
 
 	feature_encoder = GameStateEncoder()
