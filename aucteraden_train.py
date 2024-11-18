@@ -2,10 +2,9 @@ import argparse
 import glob
 import os
 import random
+from aucteraden.models import *
 import tensorflow as tf
 import numpy as np
-from keras.models import Model
-from keras.layers import Dense, Input
 from aucteraden.agent import OneMoveScoreBot, RandomBot
 from aucteraden.board import GameState
 from aucteraden.encoders import GameStateEncoder, MoveEncoder
@@ -53,7 +52,7 @@ def main():
 	checkpoint_dir = os.path.dirname(checkpoint_path)
 	# Create a callback that saves the model's weights
 	cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
-	es_callback = tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
+	es_callback = tf.keras.callbacks.EarlyStopping(patience=2, restore_best_weights=True)
 
 	# Set the random seed for reproducibility
 	seed_value = 42
@@ -92,63 +91,21 @@ def main():
 	X_train, X_test = X[:train_samples], X[train_samples:]
 	Y_train, Y_test = Y[:train_samples], Y[train_samples:]
 
-	# Define input
-	input_layer = Input(shape=(6 * 4 * 5,))
-
-	# Common hidden layers
-	hidden1 = Dense(256, activation='relu')(input_layer)
-	hidden2 = Dense(128, activation='relu')(hidden1)
-
-	churn_hidden = Dense(16, activation='relu')(hidden2)
-	buy_hidden   = Dense(16, activation='relu')(hidden2)
-	chip_hidden  = Dense(32, activation='relu')(hidden2)
-	place_hidden = Dense(64, activation='relu')(hidden2)
-
-	# Outputs
-	churn_output = Dense(1, activation="sigmoid", name="churn_output")(churn_hidden)
-	buy_output   = Dense(3, activation="softmax", name="buy_output")(buy_hidden)
-	chip_output  = Dense(6, activation="sigmoid", name="chip_output")(chip_hidden)
-	place_output = Dense(16, activation="softmax", name="place_output")(place_hidden)
-
-	# Combine into a single model
-	model = Model(inputs=input_layer, outputs=[churn_output, buy_output, chip_output, place_output])
-
-	# Compile the model with separate loss functions for each output
-	model.compile(
-		optimizer="adam",
-		loss={
-			"churn_output": "binary_crossentropy",
-			"buy_output": "categorical_crossentropy",
-			"chip_output": "binary_crossentropy",
-			"place_output": "categorical_crossentropy",
-		},
-		loss_weights={
-			"churn_output": 1.0,
-			"buy_output": 1.0,
-			"chip_output": 1.0,
-			"place_output": 1.0,
-		},
-		metrics={
-			"churn_output": "accuracy",
-			"buy_output": "accuracy",
-			"chip_output": "accuracy",
-			"place_output": "accuracy",
-		}
-	)
+	model = OneLayerModel()  # MultiOutputModel()
 	model.summary()
+
 	if args.load_weights:
 		print(f"Load weights from {checkpoint_path}")
 		model.load_weights(checkpoint_path)
 
-	Y_train_split = tf.split(Y_train, [1, 3, 6, 16], axis=1)
-	Y_test_split = tf.split(Y_test, [1, 3, 6, 16], axis=1)
+	X_train_prep, Y_train_prep, X_test_prep, Y_test_prep = model.prepare_data(X_train, Y_train, X_test, Y_test)
 
 	if args.fit:
 		print(f"Start fitting")
-		model.fit(X_train, Y_train_split, batch_size=32, epochs=20, verbose=1, validation_data=(X_test, Y_test_split),
+		model.fit(X_train_prep, Y_train_prep, batch_size=256, epochs=5, verbose=1, validation_data=(X_test_prep, Y_test_prep),
 			callbacks=[cp_callback, es_callback])
 
-	metrics = model.evaluate(X_test, Y_test_split, verbose=0)
+	metrics = model.evaluate(X_test, Y_test_prep, verbose=0)
 
 	# Define your metric names (as per your model)
 	metric_names = model.metrics_names
@@ -166,8 +123,8 @@ def main():
 		print(f"Move: {move}\n")
 
 		predict_board = X[turn].reshape(1, 120)
-		print(predict_board.shape)
-		print(predict_board)
+		#print(predict_board.shape)
+		#print(predict_board)
 
 		move_probs = model.predict(predict_board)
 		#print("move_probs: ", move_probs)
