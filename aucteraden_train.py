@@ -14,7 +14,6 @@ def main():
 	parser.add_argument("--seed", "-s", type=int, default=None)
 	parser.add_argument("--num-games", "-n", type=int, default=None)
 	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
-	parser.add_argument("--single", "-1", action="store_true", help="Generate one game per seed (inc_seed)")
 	parser.add_argument("--load-weights", "-L", action="store_true", help="Load weights into model")
 	parser.add_argument("--fit", "-F", action="store_true", help="Perform model fitting")
 	parser.add_argument("--predict", "-p", type=int, help="Perdict move #")
@@ -28,10 +27,6 @@ def main():
 
 	if args.seed is None and args.num_games is None:
 		base_fn = f"aucteraden/generated_games/"
-		if args.single:
-			base_fn += "inc_seed"
-		else:
-			base_fn += "fix_seed"
 		files = glob.glob(f"{base_fn}/*F.npy")
 		for f in files:
 			features_fn.append(f);
@@ -39,11 +34,7 @@ def main():
 			labels_fn.append(f)
 	else:
 		base_fn = "%05d_%05d" % (args.seed, args.num_games)
-		if args.single:
-			base_fn = f"inc_seed/{base_fn}"
-		else:
-			base_fn = f"fix_seed/{base_fn}"
-		base_fn = f"aucteraden/generated_games2/{base_fn}"
+		base_fn = f"aucteraden/generated_games/{base_fn}"
 
 		features_fn.append(f"{base_fn}F.npy")
 		labels_fn.append(f"{base_fn}L.npy")

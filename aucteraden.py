@@ -11,7 +11,6 @@ def main():
 	parser.add_argument("--seed", "-s", type=int, default=42)
 	parser.add_argument("--num-games", "-n", type=int, default=1000)
 	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
-	parser.add_argument("--single", "-1", action="store_true", help="Generate one game per seed (inc_seed)")
 	parser.add_argument("--check-assets", "-A", action="store_true", help="Check if all card images are present")
 	args = parser.parse_args()
 
@@ -36,10 +35,6 @@ def main():
 	labels = []
 
 	base_fn = "%05d_%05d" % (args.seed, args.num_games)
-	if args.single:
-		base_fn = f"inc_seed/{base_fn}"
-	else:
-		base_fn = f"fix_seed/{base_fn}"
 	base_fn = f"aucteraden/generated_games/{base_fn}"
 
 	features_fn = f"{base_fn}F"
@@ -52,14 +47,9 @@ def main():
 			print(f"\n======== Game {i} ========", file=file)
 			
 			game = None
-			if args.single:
-				random.seed(args.seed + i)
-				game = GameState.new_game()
-				random.seed(args.seed + i)
-			else:
-				random.seed(args.seed)
-				game = GameState.new_game()
-				random.seed(i)
+			random.seed(args.seed + i)
+			game = GameState.new_game()
+			random.seed(args.seed + i)
 
 			turn_counter = 0
 			while not game.is_over():

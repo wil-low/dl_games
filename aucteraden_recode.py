@@ -9,7 +9,6 @@ def main():
 	parser.add_argument("--seed", "-s", type=int, default=42)
 	parser.add_argument("--num-games", "-n", type=int, default=1000)
 	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
-	parser.add_argument("--single", "-1", action="store_true", help="Generate one game per seed, then increase seed")
 	args = parser.parse_args()
 
 	feature_encoder = GameStateEncoder()
@@ -18,10 +17,6 @@ def main():
 	MAX_GAME_DURATION = 20
 
 	base_fn = "%05d_%05d" % (args.seed, args.num_games)
-	if args.single:
-		base_fn = f"inc_seed/{base_fn}"
-	else:
-		base_fn = f"fix_seed/{base_fn}"
 	base_fn = f"aucteraden/generated_games/{base_fn}"
 
 	features_fn = f"{base_fn}F.npy"
