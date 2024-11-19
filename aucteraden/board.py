@@ -201,6 +201,35 @@ class Board:
 
 		return score
 
+	def is_valid_move(self, move, check_payment):
+		if move.churn_market:
+			return True
+
+		if check_payment and not self.is_valid_payment(move.payment):
+			return False
+
+		if self.get_card(move.col, move.row) is not None:
+			return False
+
+		mcard = self.market[move.buy_card_index]
+		if not self.grid_empty:
+			has_neighbour = False
+			for dr, dc in directions:
+				gcard = self.get_card(move.col + dc, move.row + dr)
+				if gcard is not None:
+					if (mcard.type == CardType.ace or mcard.type == CardType.crowns) and (gcard.type == CardType.ace or gcard.type == CardType.crowns):
+						return False
+					has_neighbour = True
+			return has_neighbour
+
+		return True
+	
+	def is_valid_payment(self, payment):
+		for suit, count in payment.items():
+			if self.chips[suit] < count:
+				return False
+		return True
+
 
 class Move:
 	def __init__(self, buy_card_index=None, payment={}, col=None, row=None, churn_market=False):
@@ -263,32 +292,4 @@ class GameState:
 	
 	def is_over(self):
 		return len(self.board.deck.cards) == 0 or len(self.board.free_cells) == 0
-	
-	def is_valid_move(self, move, check_payment):
-		if move.churn_market:
-			return True
 
-		if check_payment and not self.is_valid_payment(move.payment):
-			return False
-
-		if self.board.get_card(move.col, move.row) is not None:
-			return False
-
-		mcard = self.board.market[move.buy_card_index]
-		if not self.board.grid_empty:
-			has_neighbour = False
-			for dr, dc in directions:
-				gcard = self.board.get_card(move.col + dc, move.row + dr)
-				if gcard is not None:
-					if (mcard.type == CardType.ace or mcard.type == CardType.crowns) and (gcard.type == CardType.ace or gcard.type == CardType.crowns):
-						return False
-					has_neighbour = True
-			return has_neighbour
-
-		return True
-	
-	def is_valid_payment(self, payment):
-		for suit, count in payment.items():
-			if self.board.chips[suit] < count:
-				return False
-		return True

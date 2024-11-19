@@ -69,9 +69,9 @@ def main():
 			Y_load.append(y)
 
 	X = np.concatenate(X_load)
-	print(X.shape)
+	#print(X.shape)
 	Y = np.concatenate(Y_load)
-	print(Y.shape)
+	#print(Y.shape)
 	assert(X.shape[0] == Y.shape[0])
 	samples = X.shape[0]
 

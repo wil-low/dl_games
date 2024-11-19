@@ -1,6 +1,7 @@
 import copy
 import random
 from aucteraden.board import Board, Move
+from aucteraden.encoders import GameStateEncoder, MoveEncoder
 
 
 class Agent:
@@ -33,7 +34,7 @@ class RandomBot(Agent):
 			for chips in self.chip_combos(mcard, cost):
 				for col, row in game_state.board.free_cells:
 					move = Move.buy_and_place(idx, chips, col, row)
-					if game_state.is_valid_move(move, True):
+					if game_state.board.is_valid_move(move, True):
 						candidates.append(move)
 			cost += 1
 		#print("\nValid moves: " + str(len(candidates)))
@@ -58,7 +59,7 @@ class OneMoveScoreBot(Agent):
 			for chips in self.chip_combos(mcard, cost):
 				for col, row in game_state.board.free_cells:
 					move = Move.buy_and_place(idx, chips, col, row)
-					if game_state.is_valid_move(move, True):
+					if game_state.board.is_valid_move(move, True):
 						next_state = game_state.apply_move(move)
 						next_score = next_state.board.calculate_score()
 						#print(f"select_move {idx}: ({col}, {row}), {mcard}, cost {cost}, score {next_score}: {next_score >= best_score}")
@@ -76,4 +77,34 @@ class OneMoveScoreBot(Agent):
 			return Move.churn()
 		if not game_state.board.grid_empty:
 			return random.choice(candidates[-self.upper_limit:])
+		return random.choice(candidates)
+
+
+class RandomGymBot(Agent):
+	def __init__(self):
+		super().__init__()
+		self.game_state_encoder = GameStateEncoder()
+		self.move_encoder = MoveEncoder()
+
+	def get_action(self, obs):
+		board = self.game_state_encoder.decode(obs)
+		move = self.select_move(board)
+		result = self.move_encoder.encode(move)
+		print(f"move: {move}\nget_action: {result}")
+		return result
+
+	def select_move(self, board):
+		candidates = []
+		cost = 0
+		for mcard in reversed(board.market):
+			idx = len(board.market) - cost - 1
+			for chips in self.chip_combos(mcard, cost):
+				for col, row in board.free_cells:
+					move = Move.buy_and_place(idx, chips, col, row)
+					if board.is_valid_move(move, True):
+						candidates.append(move)
+			cost += 1
+		#print("\nValid moves: " + str(len(candidates)))
+		if len(candidates) == 0:
+			return Move.churn()
 		return random.choice(candidates)
