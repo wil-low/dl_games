@@ -1,5 +1,5 @@
 
-from aucteraden.agent import RandomGymBot
+from aucteraden.agent import OneMoveScoreGymBot, RandomGymBot
 import gymnasium as gym
 import numpy as np
 from gymnasium.utils.play import play
@@ -7,7 +7,7 @@ from gymnasium.wrappers import RecordEpisodeStatistics, RecordVideo
 
 from gymnasium_env.aucteraden import AucteradenEnv
 
-record_video = True
+record_video = False
 
 gym.register(
 	id="Aucteraden-v0",
@@ -26,7 +26,8 @@ if record_video:
 
 observation, info = env.reset()
 
-agent = RandomGymBot()
+#agent = RandomGymBot()
+agent = OneMoveScoreGymBot(25, 3)
 
 episode_over = False
 while not episode_over:
@@ -35,5 +36,6 @@ while not episode_over:
 	episode_over = terminated or truncated
 
 env.render()
+print("Terminated, press any key...")
 input()
 env.close()

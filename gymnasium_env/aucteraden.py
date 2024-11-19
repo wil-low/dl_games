@@ -87,13 +87,14 @@ class AucteradenEnv(gym.Env):
 				'pygame is not installed, run `pip install "gymnasium[toy-text]"`'
 			) from e
 
-		#player_sum, dealer_card_value, usable_ace = self._get_obs()
-		screen_width, screen_height = 1300, 1000
-		card_img_width = int(224 * 0.7)
-		card_img_height = int(314 * 0.7)
+		card_img_width = int(224 * 0.7) + 2
+		card_img_height = int(314 * 0.7) + 2
 		suit_img_width = 47
 		suit_img_height = 47
 		spacing = 10
+
+		screen_width, screen_height = 1300, (card_img_height + spacing) * 4 + spacing
+
 		market_x, market_y = spacing, spacing * 5
 		grid_x, grid_y = 10 * spacing + (card_img_width + spacing) * 3, spacing
 
@@ -115,13 +116,15 @@ class AucteradenEnv(gym.Env):
 
 		self.screen.fill(bg_color)
 
+		title_font = pygame.font.Font(pygame.font.get_default_font(), 45)
+
 		font = pygame.font.Font(pygame.font.get_default_font(), 25)
 
-		def draw_text(s, font, surface, x, y):
+		def draw_text(s, font, x, y):
 			text = font.render(s, 1, white)
 			rect = text.get_rect()
 			rect.topleft = (x, y)
-			surface.blit(text, rect)
+			self.screen.blit(text, rect)
 
 		def show_suit_chip(suit, count, x, y):
 			img = None
@@ -132,40 +135,46 @@ class AucteradenEnv(gym.Env):
 				#img = pygame.transform.scale(img, (card_img_width, card_img_height))
 				self.suit_image_cache[suit] = img
 			self.screen.blit(img, (x, y))
-			draw_text(f"{count}", font, self.screen, x + suit_img_width + spacing, y + suit_img_height // 4)
+			draw_text(f"{count}", font, x + suit_img_width + spacing, y + suit_img_height // 4)
 
-		def show_card(card, x, y):
+		def show_card(card_id, x, y):
 			img = None
-			if card.id in self.card_image_cache:
-				img = self.card_image_cache[card.id]
+			if card_id in self.card_image_cache:
+				img = self.card_image_cache[card_id]
 			else:
-				img = pygame.image.load(f"decktet/assets/{card.id}.png")
+				img = pygame.image.load(f"decktet/assets/{card_id}.png")
 				img = pygame.transform.scale(img, (card_img_width, card_img_height))
-				self.card_image_cache[card.id] = img
+				self.card_image_cache[card_id] = img
 			return self.screen.blit(img, (x, y))
 
 		# Cards in deck
-		draw_text(f"Deck: {len(self.game.board.deck.cards)}", font, self.screen, spacing, spacing)
+		draw_text(f"Deck: {len(self.game.board.deck.cards)}", font, spacing * 2, spacing)
+
+		# Score
+		draw_text(f"Score: {self.game.board.calculate_score()}", font, spacing * 2 + (spacing + card_img_width) * 2, spacing)
 
 		# Market
 		for i in range(len(self.game.board.market)):
+			draw_text(f"Cost: {2 - i}", font, market_x + (card_img_width + spacing) * i + spacing, market_y + spacing)
 			card = self.game.board.market[i]
-			show_card(card, market_x + (card_img_width + spacing) * i, market_y)
+			show_card(card.id, market_x + (card_img_width + spacing) * i, market_y + spacing * 5)
 
 		# Suit chips
 		for suit in CardSuit:
 			count = self.game.board.chips[suit]
-			show_suit_chip(suit, count, spacing + suit_img_width * 2 * suit.value, market_y + card_img_height + spacing * 3)
-
-		# Score
-		draw_text(f"Score: {self.game.board.calculate_score()}", font, self.screen, spacing + (spacing + card_img_width) * 2, spacing)
+			show_suit_chip(suit, count, spacing + suit_img_width * 2 * suit.value, market_y + card_img_height + spacing * 8)
 
 		# Grid
 		for row in range(Board.row_count):
 			for col in range(Board.col_count):
 				card = self.game.board.get_card(col, row)
+				img_id = "empty"
 				if card:
-					show_card(card, grid_x + (card_img_width + spacing) * col, grid_y + (card_img_height + spacing) * row)
+					img_id = card.id
+				show_card(img_id, grid_x + (card_img_width + spacing) * col, grid_y + (card_img_height + spacing) * row)
+
+		# Title
+		draw_text(f"Aucteraden", title_font, spacing, screen_height - spacing * 5)
 
 		if self.render_mode == "human":
 			pygame.event.pump()

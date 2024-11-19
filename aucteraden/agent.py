@@ -25,6 +25,21 @@ class Agent:
 				return [{card.suits_list[0]: 1, card.suits_list[1]: 1}, {card.suits_list[0]: 2}, {card.suits_list[1]: 2}]
 		return [{}]
 
+
+class GymAgent(Agent):
+	def __init__(self):
+		super().__init__()
+		self.game_state_encoder = GameStateEncoder()
+		self.move_encoder = MoveEncoder()
+
+	def get_action(self, obs):
+		board = self.game_state_encoder.decode(obs)
+		move = self.select_move(board)
+		result = self.move_encoder.encode(move)
+		print(f"move: {move}\nget_action: {result}")
+		return result
+
+
 class RandomBot(Agent):
 	def select_move(self, game_state):
 		candidates = []
@@ -80,18 +95,9 @@ class OneMoveScoreBot(Agent):
 		return random.choice(candidates)
 
 
-class RandomGymBot(Agent):
+class RandomGymBot(GymAgent):
 	def __init__(self):
 		super().__init__()
-		self.game_state_encoder = GameStateEncoder()
-		self.move_encoder = MoveEncoder()
-
-	def get_action(self, obs):
-		board = self.game_state_encoder.decode(obs)
-		move = self.select_move(board)
-		result = self.move_encoder.encode(move)
-		print(f"move: {move}\nget_action: {result}")
-		return result
 
 	def select_move(self, board):
 		candidates = []
@@ -107,4 +113,41 @@ class RandomGymBot(Agent):
 		#print("\nValid moves: " + str(len(candidates)))
 		if len(candidates) == 0:
 			return Move.churn()
+		return random.choice(candidates)
+
+
+class OneMoveScoreGymBot(GymAgent):
+	def __init__(self, max_candidates_count, upper_limit):
+		super().__init__()
+		self.max_candidates_count = max_candidates_count
+		self.upper_limit = upper_limit
+
+	def select_move(self, board):
+		candidates = []
+		best_score = -100000000
+		cost = 0
+		for mcard in reversed(board.market):
+			idx = len(board.market) - cost - 1
+			#print(f"select_move {idx}: {mcard}, cost {cost}")
+			for chips in self.chip_combos(mcard, cost):
+				for col, row in board.free_cells:
+					move = Move.buy_and_place(idx, chips, col, row)
+					if board.is_valid_move(move, True):
+						next_board = board.apply_move(move)
+						next_score = next_board.calculate_score()
+						#print(f"select_move {idx}: ({col}, {row}), {mcard}, cost {cost}, score {next_score}: {next_score >= best_score}")
+						if next_score >= best_score:
+							candidates.append(move)
+							best_score = next_score
+							if not board.grid_empty and len(candidates) == self.max_candidates_count:
+								return self.select_candidate(board, candidates)
+			cost += 1
+		return self.select_candidate(board, candidates)
+	
+	def select_candidate(self, board, candidates):
+		#print("\nValid moves: " + str(len(candidates)))
+		if len(candidates) == 0:
+			return Move.churn()
+		if not board.grid_empty:
+			return random.choice(candidates[-self.upper_limit:])
 		return random.choice(candidates)

@@ -230,6 +230,17 @@ class Board:
 				return False
 		return True
 
+	def apply_move(self, move):
+		card = None
+		next_board = copy.deepcopy(self)
+		if move.buy_card_index is not None:
+			card = next_board.buy_card(move.buy_card_index, move.payment)
+		if move.churn_market:
+			next_board.market = []
+			next_board.score -= 3
+		else:
+			next_board.place_card(card, move.col, move.row)
+		return next_board
 
 class Move:
 	def __init__(self, buy_card_index=None, payment={}, col=None, row=None, churn_market=False):
@@ -279,16 +290,7 @@ class GameState:
 		return GameState(board, None, None)
 
 	def apply_move(self, move):
-		card = None
-		next_board = copy.deepcopy(self.board)
-		if move.buy_card_index is not None:
-			card = next_board.buy_card(move.buy_card_index, move.payment)
-		if move.churn_market:
-			next_board.market = []
-			next_board.score -= 3
-		else:
-			next_board.place_card(card, move.col, move.row)
-		return GameState(next_board, self, move)
+		return GameState(self.board.apply_move(move), self, move)
 	
 	def is_over(self):
 		return len(self.board.deck.cards) == 0 or len(self.board.free_cells) == 0
