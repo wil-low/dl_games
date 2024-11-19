@@ -1,3 +1,4 @@
+import os
 from decktet.card import Card, CardIdentity, CardSuit, CardType
 
 
@@ -18,12 +19,12 @@ class Deck:
 			Card(CardType.ace,     "Ace of Knots",  [CardSuit.knots]),
 
 			Card(CardType.number2, "Desert",        [CardSuit.suns, CardSuit.wyrms],   [CardIdentity.location]),
-			Card(CardType.number2, "Origin",        [CardSuit.waves, CardSuit.leaves], [CardIdentity.location]),
+			Card(CardType.number2, "Origin",        [CardSuit.waves, CardSuit.leaves], [CardIdentity.location, CardIdentity.event]),
 			Card(CardType.number2, "Author",        [CardSuit.moons, CardSuit.knots],  [CardIdentity.personality]),
 
 			Card(CardType.number3, "Painter",       [CardSuit.suns, CardSuit.knots],   [CardIdentity.personality]),
 			Card(CardType.number3, "Savage",        [CardSuit.leaves, CardSuit.wyrms], [CardIdentity.personality]),
-			Card(CardType.number3, "Jorney",        [CardSuit.waves, CardSuit.leaves], [CardIdentity.event]),
+			Card(CardType.number3, "Journey",       [CardSuit.moons, CardSuit.waves],  [CardIdentity.event]),
 
 			Card(CardType.number4, "Mountain",      [CardSuit.moons, CardSuit.suns],   [CardIdentity.location]),
 			Card(CardType.number4, "Sailor",        [CardSuit.waves, CardSuit.leaves], [CardIdentity.personality]),
@@ -42,7 +43,7 @@ class Deck:
 			Card(CardType.number7, "Chance Meeting",[CardSuit.moons, CardSuit.leaves], [CardIdentity.event]),
 
 			Card(CardType.number8, "Mill",          [CardSuit.waves, CardSuit.leaves], [CardIdentity.location]),
-			Card(CardType.number8, "Diplomat",      [CardSuit.suns, CardSuit.moons],   [CardIdentity.personality]),
+			Card(CardType.number8, "Diplomat",      [CardSuit.moons, CardSuit.suns],   [CardIdentity.personality]),
 			Card(CardType.number8, "Betrayal",      [CardSuit.wyrms, CardSuit.knots],  [CardIdentity.event]),
 
 			Card(CardType.number9, "Darkness",      [CardSuit.waves, CardSuit.wyrms],  [CardIdentity.location]),
@@ -59,12 +60,12 @@ class Deck:
 			Card(CardType.courts,  "Consul",        [CardSuit.moons, CardSuit.waves, CardSuit.knots],  [CardIdentity.personality]),
 			Card(CardType.courts,  "Rite",          [CardSuit.moons, CardSuit.leaves, CardSuit.wyrms], [CardIdentity.event]),
 
-			Card(CardType.crowns,  "Sea",      [CardSuit.waves],  [CardIdentity.location]),
-			Card(CardType.crowns,  "End",      [CardSuit.leaves], [CardIdentity.location, CardIdentity.event]),
-			Card(CardType.crowns,  "Bard",     [CardSuit.suns],    [CardIdentity.personality]),
-			Card(CardType.crowns,  "Huntress", [CardSuit.moons],  [CardIdentity.personality]),
-			Card(CardType.crowns,  "Calamity", [CardSuit.wyrms],  [CardIdentity.event]),
-			Card(CardType.crowns,  "Windfall", [CardSuit.knots],  [CardIdentity.event]),
+			Card(CardType.crowns,  "Sea",           [CardSuit.waves],  [CardIdentity.location]),
+			Card(CardType.crowns,  "End",           [CardSuit.leaves], [CardIdentity.location, CardIdentity.event]),
+			Card(CardType.crowns,  "Bard",          [CardSuit.suns],    [CardIdentity.personality]),
+			Card(CardType.crowns,  "Huntress",      [CardSuit.moons],  [CardIdentity.personality]),
+			Card(CardType.crowns,  "Calamity",      [CardSuit.wyrms],  [CardIdentity.event]),
+			Card(CardType.crowns,  "Windfall",      [CardSuit.knots],  [CardIdentity.event]),
 		])
 		return deck
 
@@ -78,3 +79,9 @@ class Deck:
 		if len(self.cards) > 0:
 			return self.cards.pop(0)
 		return None
+
+	def check_assets(self):
+		for card in self.cards:
+			fname = f"decktet/assets/{card.id}.png"
+			if not os.path.isfile(fname):
+				print(f"check_assets: {fname} is missing ({card.name})")

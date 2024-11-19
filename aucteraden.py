@@ -4,6 +4,7 @@ import numpy as np
 from aucteraden.agent import OneMoveScoreBot, RandomBot
 from aucteraden.board import GameState
 from aucteraden.encoders import GameStateEncoder, MoveEncoder
+from decktet.deck import Deck
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -11,7 +12,14 @@ def main():
 	parser.add_argument("--num-games", "-n", type=int, default=1000)
 	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
 	parser.add_argument("--single", "-1", action="store_true", help="Generate one game per seed (inc_seed)")
+	parser.add_argument("--check-assets", "-A", action="store_true", help="Check if all card images are present")
 	args = parser.parse_args()
+
+	if args.check_assets:
+		deck = Deck.make_extended()
+		deck.check_assets()
+		return
+
 
 	feature_encoder = GameStateEncoder()
 	label_encoder = MoveEncoder()
@@ -32,7 +40,7 @@ def main():
 		base_fn = f"inc_seed/{base_fn}"
 	else:
 		base_fn = f"fix_seed/{base_fn}"
-	base_fn = f"aucteraden/generated_games2/{base_fn}"
+	base_fn = f"aucteraden/generated_games/{base_fn}"
 
 	features_fn = f"{base_fn}F"
 	labels_fn   = f"{base_fn}L"

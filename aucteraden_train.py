@@ -27,7 +27,7 @@ def main():
 	labels_fn   = []
 
 	if args.seed is None and args.num_games is None:
-		base_fn = f"aucteraden/generated_games2/"
+		base_fn = f"aucteraden/generated_games/"
 		if args.single:
 			base_fn += "inc_seed"
 		else:
@@ -83,13 +83,14 @@ def main():
 	print(Y.shape)
 	assert(X.shape[0] == Y.shape[0])
 	samples = X.shape[0]
-	print(f"Samples: {samples} from {len(features_fn)} files")
 
 	X = X.reshape(samples, 6 * 4 * 5)
 
 	train_samples = int(0.9 * samples)
 	X_train, X_test = X[:train_samples], X[train_samples:]
 	Y_train, Y_test = Y[:train_samples], Y[train_samples:]
+
+	print(f"Samples: {samples} from {len(features_fn)} files; test samples start from {len(X_train) + 1}")
 
 	model = OneLayerModel()  # MultiOutputModel()
 	model.summary()

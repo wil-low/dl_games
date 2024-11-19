@@ -58,20 +58,21 @@ class Card:
 		CardSuit.knots:  "K"
 	}
 
-	def __init__(self, type, name, suits, identities = [], image = ""):
+	def __init__(self, type, name, suits, identities = []):
 		self.type = type
 		self.name = name
 		self.suits = set(suits)
 		self.suits_list = suits
-		self.ids = set(identities)
-		self.image = image
+		self.identities = set(identities)
+		self.str = ""
+		for s in self.suits_list:
+			self.str += Card.suit_map[s]
+		self.id = "%s%s" % (Card.type_map[self.type], self.str)
+		self.id = self.id.replace(" ", "")
+		self.str = "%s %-3s" % (Card.type_map[self.type], self.str)
 
 	def __str__(self):
-		suits = ""
-		for s in self.suits_list:
-			suits += Card.suit_map[s]
-		return "%s %-3s" % (Card.type_map[self.type], suits)
-		#return "%s %-3s: %s" % (Card.type_map[self.type], suits, self.name)
+		return self.str
 
 	def is_extended(self):
 		return self.type == CardType.excuse or self.type == CardType.pawns or self.type == CardType.courts
