@@ -41,15 +41,17 @@ def main():
 	labels_fn   = f"{base_fn}L"
 	output_fn =   f"{base_fn}.log"
 
+	random.seed(args.seed)
+
 	counter = 0
 	with open(output_fn, "w") as file:
 		for i in range(args.num_games):
 			print(f"\n======== Game {i} ========", file=file)
 			
 			game = None
-			random.seed(args.seed + i)
+			#random.seed(args.seed + i)
 			game = GameState.new_game()
-			random.seed(args.seed + i)
+			#random.seed(args.seed + i)
 
 			turn_counter = 0
 			while not game.is_over():
