@@ -1,7 +1,11 @@
 import copy
 import random
+
+import numpy as np
+import tensorflow as tf
 from aucteraden.board import Board, Move
 from aucteraden.encoders import GameStateEncoder, MoveEncoder
+from aucteraden.models import OneLayerModel
 
 
 class Agent:
@@ -151,3 +155,58 @@ class OneMoveScoreGymBot(GymAgent):
 		if not board.grid_empty:
 			return random.choice(candidates[-self.upper_limit:])
 		return random.choice(candidates)
+
+
+class OneLayerModelGymBot(GymAgent):
+	def __init__(self, checkpoint_path):
+		super().__init__()
+		self.model = OneLayerModel()
+		self.model.summary()
+		print(f"Load weights from {checkpoint_path}")
+		self.model.load_weights(checkpoint_path)
+
+	def get_action(self, obs):
+		predict_board = obs.reshape(1, 120)
+		move_probs = self.model.predict(predict_board)
+		flattened_tensors = [tf.reshape(t, [-1]) for t in move_probs]
+		mtx = tf.concat(flattened_tensors, axis=0)
+		print(self.move_encoder.decode_predict(mtx))
+		mtx = np.array(mtx)
+		#if mtx[MoveEncoder.CHURN_OFFSET] == 1:
+		#	return Move.churn()
+		board = self.game_state_encoder.decode(obs)
+		print(f"Board: {board}")
+
+		candidates = []
+		cost = 0
+		for mcard in reversed(board.market):
+			#print(f"Market card: {mcard}")
+			idx = len(board.market) - cost - 1
+			buy_prob = mtx[MoveEncoder.BUY_OFFSET + idx]
+			for chips in self.chip_combos(mcard, cost):
+				chip_prob = 0
+				for suit, count in chips.items():
+					chip_prob += mtx[MoveEncoder.CHIP_OFFSET + suit.value]
+				for col, row in board.free_cells:
+					grid_prob = mtx[MoveEncoder.BOARD_COL_OFFSET + col + row * Board.col_count]
+					move = Move.buy_and_place(idx, chips, col, row)
+					is_valid = board.is_valid_move(move, True)
+					#print(f"Check move: {move} = {is_valid}") 
+					if is_valid:
+						prob = 100 * buy_prob + 10 * chip_prob + grid_prob
+						#print(f"Move: {move}, prob {buy_prob} + {chip_prob} + {grid_prob} = {prob}")
+						candidates.append((prob, move))
+			cost += 1
+
+		if len(candidates) == 0:
+			print(f"Move failed, churn")
+			move = Move.churn()
+			return self.move_encoder.encode(move)
+
+		candidates.sort(reverse=True, key=lambda item: item[0])
+		#for prob, move in candidates:
+		#	print(f"{prob}: {move}")
+		_, move = candidates[0]
+		result = self.move_encoder.encode(move)
+		print(f"Best move: {move}")
+		return result

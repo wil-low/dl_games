@@ -47,7 +47,7 @@ class AucteradenEnv(gym.Env):
 			self.render()
 		# truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
 		result = (self._get_obs(), reward, terminated, False, {})
-		print(f"step: {result}")
+		#print(f"step: {result}")
 		return result
 
 	def _get_obs(self):
@@ -67,7 +67,7 @@ class AucteradenEnv(gym.Env):
 		if self.render_mode == "human":
 			self.render()
 		result = (self._get_obs(), {})
-		print(f"reset: {result}")
+		#print(f"reset: {result}")
 		return result
 
 	def render(self):

@@ -1,5 +1,5 @@
 
-from aucteraden.agent import OneMoveScoreGymBot, RandomGymBot
+from aucteraden.agent import OneLayerModelGymBot, OneMoveScoreGymBot, RandomGymBot
 import gymnasium as gym
 import numpy as np
 from gymnasium.utils.play import play
@@ -24,18 +24,21 @@ if record_video:
 	env = RecordVideo(env, video_folder="random-gym-agent", name_prefix="eval", episode_trigger=lambda x: True)
 	env = RecordEpisodeStatistics(env, buffer_length=1)
 
-observation, info = env.reset()
-
 #agent = RandomGymBot()
-agent = OneMoveScoreGymBot(25, 3)
+#agent = OneMoveScoreGymBot(25, 4)
+agent = OneLayerModelGymBot("aucteraden/training_1/cp.weights.h5")
 
-episode_over = False
-while not episode_over:
-	action = agent.get_action(observation)
-	observation, reward, terminated, truncated, info = env.step(action)
-	episode_over = terminated or truncated
+while render_mode == "human":
+	observation, info = env.reset()
 
-env.render()
+	episode_over = False
+	while not episode_over:
+		action = agent.get_action(observation)
+		observation, reward, terminated, truncated, info = env.step(action)
+		episode_over = terminated or truncated
+
+	env.render()
+
 print("Terminated, press any key...")
 input()
 env.close()

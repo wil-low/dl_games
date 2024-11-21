@@ -16,7 +16,7 @@ def main():
 	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
 	parser.add_argument("--load-weights", "-L", action="store_true", help="Load weights into model")
 	parser.add_argument("--fit", "-F", action="store_true", help="Perform model fitting")
-	parser.add_argument("--predict", "-p", type=int, help="Perdict move #")
+	parser.add_argument("--predict", "-p", type=int, help="Predict move #")
 	args = parser.parse_args()
 
 	feature_encoder = GameStateEncoder()
@@ -94,7 +94,7 @@ def main():
 
 	if args.fit:
 		print(f"Start fitting")
-		model.fit(X_train_prep, Y_train_prep, batch_size=256, epochs=5, verbose=1, validation_data=(X_test_prep, Y_test_prep),
+		model.fit(X_train_prep, Y_train_prep, batch_size=128, epochs=20, verbose=1, validation_data=(X_test_prep, Y_test_prep),
 			callbacks=[cp_callback, es_callback])
 
 	metrics = model.evaluate(X_test, Y_test_prep, verbose=0)
