@@ -15,7 +15,7 @@ def main():
 	parser.add_argument("--num-games", "-n", type=int, default=None)
 	parser.add_argument("--verbose", "-v", action="store_true", help="Print every move")
 	parser.add_argument("--load-weights", "-L", action="store_true", help="Load weights into model")
-	parser.add_argument("--fit", "-F", action="store_true", help="Perform model fitting")
+	parser.add_argument("--train", "-T", action="store_true", help="Perform model training")
 	parser.add_argument("--predict", "-p", type=int, help="Predict move #")
 	args = parser.parse_args()
 
@@ -38,12 +38,6 @@ def main():
 
 		features_fn.append(f"{base_fn}F.npy")
 		labels_fn.append(f"{base_fn}L.npy")
-
-	checkpoint_path = "aucteraden/training_1/cp.weights.h5"
-	checkpoint_dir = os.path.dirname(checkpoint_path)
-	# Create a callback that saves the model's weights
-	cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
-	es_callback = tf.keras.callbacks.EarlyStopping(patience=2, restore_best_weights=True)
 
 	# Set the random seed for reproducibility
 	seed_value = 42
@@ -83,8 +77,15 @@ def main():
 
 	print(f"Samples: {samples} from {len(features_fn)} files; test samples start from {len(X_train) + 1}")
 
-	model = OneLayerModel()  # MultiOutputModel()
+	#model = OneLayerModel()
+	#model = MultiOutputModel()
+	model = MultiOutputChanneledModel()
 	model.summary()
+
+	checkpoint_path = f"aucteraden/training_1/{model.name}.weights.h5"
+	# Create a callback that saves the model's weights
+	cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
+	es_callback = tf.keras.callbacks.EarlyStopping(patience=2, restore_best_weights=True)
 
 	if args.load_weights:
 		print(f"Load weights from {checkpoint_path}")
@@ -92,8 +93,8 @@ def main():
 
 	X_train_prep, Y_train_prep, X_test_prep, Y_test_prep = model.prepare_data(X_train, Y_train, X_test, Y_test)
 
-	if args.fit:
-		print(f"Start fitting")
+	if args.train:
+		print(f"Start training")
 		model.fit(X_train_prep, Y_train_prep, batch_size=128, epochs=20, verbose=1, validation_data=(X_test_prep, Y_test_prep),
 			callbacks=[cp_callback, es_callback])
 

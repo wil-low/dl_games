@@ -5,7 +5,6 @@ import numpy as np
 import tensorflow as tf
 from aucteraden.board import Board, Move
 from aucteraden.encoders import GameStateEncoder, MoveEncoder
-from aucteraden.models import OneLayerModel
 
 
 class Agent:
@@ -157,11 +156,12 @@ class OneMoveScoreGymBot(GymAgent):
 		return random.choice(candidates)
 
 
-class OneLayerModelGymBot(GymAgent):
-	def __init__(self, checkpoint_path):
+class ModelGymBot(GymAgent):
+	def __init__(self, model):
 		super().__init__()
-		self.model = OneLayerModel()
+		self.model = model
 		self.model.summary()
+		checkpoint_path = f"aucteraden/training_1/{self.model.name}.weights.h5"
 		print(f"Load weights from {checkpoint_path}")
 		self.model.load_weights(checkpoint_path)
 

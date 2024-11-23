@@ -10,18 +10,17 @@ class MultiOutputChanneledModel(Model):
 
 		# Common hidden layers
 		hidden1 = Dense(256, activation='relu')(input_layer)
-		hidden2 = Dense(128, activation='relu')(hidden1)
-
-		churn_hidden = Dense(16, activation='relu')(hidden2)
-		buy_hidden   = Dense(16, activation='relu')(hidden2)
-		chip_hidden  = Dense(32, activation='relu')(hidden2)
-		place_hidden = Dense(64, activation='relu')(hidden2)
+		dropout1 = Dropout(0.5)(hidden1)
+		hidden2 = Dense(128, activation='relu')(dropout1)
+		dropout2 = Dropout(0.5)(hidden2)
+		hidden3 = Dense(128, activation='relu')(dropout2)
+		dropout3 = Dropout(0.5)(hidden3)
 
 		# Outputs
-		churn_output = Dense(1, activation="sigmoid", name="churn_output")(churn_hidden)
-		buy_output   = Dense(3, activation="softmax", name="buy_output")(buy_hidden)
-		chip_output  = Dense(6, activation="sigmoid", name="chip_output")(chip_hidden)
-		place_output = Dense(16, activation="softmax", name="place_output")(place_hidden)
+		churn_output = Dense(1, activation="sigmoid", name="churn")(dropout3)
+		buy_output   = Dense(3, activation="softmax", name="buy")(dropout3)
+		chip_output  = Dense(6, activation="softmax", name="chip")(dropout3)
+		place_output = Dense(16, activation="softmax", name="place")(dropout3)
 
 		# Combine into a single model
 		super().__init__(inputs=input_layer, outputs=[churn_output, buy_output, chip_output, place_output])
@@ -30,22 +29,22 @@ class MultiOutputChanneledModel(Model):
 		self.compile(
 			optimizer="adam",
 			loss={
-				"churn_output": "binary_crossentropy",
-				"buy_output": "categorical_crossentropy",
-				"chip_output": "binary_crossentropy",
-				"place_output": "categorical_crossentropy",
+				"churn": "binary_crossentropy",
+				"buy": "binary_crossentropy",
+				"chip": "binary_crossentropy",
+				"place": "binary_crossentropy",
 			},
 			loss_weights={
-				"churn_output": 1.0,
-				"buy_output": 1.0,
-				"chip_output": 1.0,
-				"place_output": 1.0,
+				"churn": 1.0,
+				"buy": 1.0,
+				"chip": 1.0,
+				"place": 1.0,
 			},
 			metrics={
-				"churn_output": "accuracy",
-				"buy_output": "accuracy",
-				"chip_output": "accuracy",
-				"place_output": "accuracy",
+				"churn": "accuracy",
+				"buy": "accuracy",
+				"chip": "accuracy",
+				"place": "accuracy",
 			}
 		)
 
@@ -127,4 +126,4 @@ class OneLayerModel(Model):
 		)
 
 	def prepare_data(self, X_train, Y_train, X_test, Y_test):
-		return (X_train, Y_train, X_test, Y_test)		
+		return (X_train, Y_train, X_test, Y_test)

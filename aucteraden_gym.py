@@ -1,5 +1,6 @@
 
-from aucteraden.agent import OneLayerModelGymBot, OneMoveScoreGymBot, RandomGymBot
+from aucteraden.agent import ModelGymBot, OneMoveScoreGymBot, RandomGymBot
+from aucteraden.models import MultiOutputChanneledModel, OneLayerModel
 import gymnasium as gym
 import numpy as np
 from gymnasium.utils.play import play
@@ -25,8 +26,11 @@ if record_video:
 	env = RecordEpisodeStatistics(env, buffer_length=1)
 
 #agent = RandomGymBot()
-#agent = OneMoveScoreGymBot(25, 4)
-agent = OneLayerModelGymBot("aucteraden/training_1/cp.weights.h5")
+agent = OneMoveScoreGymBot(25, 4)
+
+#model = OneLayerModel()
+#model = MultiOutputChanneledModel()
+#agent = ModelGymBot(model)
 
 while render_mode == "human":
 	observation, info = env.reset()
