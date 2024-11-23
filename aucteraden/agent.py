@@ -79,7 +79,7 @@ class OneMoveScoreBot(Agent):
 					move = Move.buy_and_place(idx, chips, col, row)
 					if game_state.board.is_valid_move(move, True):
 						next_state = game_state.apply_move(move)
-						next_score = next_state.board.calculate_score()
+						next_score, _ = next_state.board.calculate_score()
 						#print(f"select_move {idx}: ({col}, {row}), {mcard}, cost {cost}, score {next_score}: {next_score >= best_score}")
 						if next_score >= best_score:
 							candidates.append(move)
@@ -137,7 +137,7 @@ class OneMoveScoreGymBot(GymAgent):
 					move = Move.buy_and_place(idx, chips, col, row)
 					if board.is_valid_move(move, True):
 						next_board = board.apply_move(move)
-						next_score = next_board.calculate_score()
+						next_score, _ = next_board.calculate_score()
 						#print(f"select_move {idx}: ({col}, {row}), {mcard}, cost {cost}, score {next_score}: {next_score >= best_score}")
 						if next_score >= best_score:
 							candidates.append(move)

@@ -96,10 +96,19 @@ class AucteradenEnv(gym.Env):
 		screen_width, screen_height = 1300, (card_img_height + spacing) * 4 + spacing
 
 		market_x, market_y = spacing, spacing * 5
-		grid_x, grid_y = 10 * spacing + (card_img_width + spacing) * 3, spacing
+		grid_x, grid_y = screen_width - (card_img_width + spacing) * 4, spacing
 
 		bg_color = (7, 99, 36)
 		white = (255, 255, 255)
+		suit_color = {
+			CardSuit.moons: (153, 153, 153),
+			CardSuit.suns:  (255, 102, 0),
+			CardSuit.waves: (0, 102, 255),
+			CardSuit.leaves:(200, 113, 55),
+			CardSuit.wyrms: (0, 170, 0),
+			CardSuit.knots: (255, 204, 0)
+		}
+		line_width = 4
 
 		if not hasattr(self, "screen"):
 			pygame.init()
@@ -146,16 +155,31 @@ class AucteradenEnv(gym.Env):
 				img = pygame.transform.scale(img, (card_img_width, card_img_height))
 				self.card_image_cache[card_id] = img
 			return self.screen.blit(img, (x, y))
+		
+		def draw_chains(longest_chains):
+			for suit, items in longest_chains.items():
+				cards, _ = items
+				if len(cards) > 1:
+					offset = (suit.value - 3) * line_width
+					lines = [(grid_x + card_img_width // 2 + offset + (card_img_width + spacing) * col,
+							grid_y + card_img_height // 2 + offset + (card_img_height + spacing) * row)
+							for _, col, row in cards]
+					pygame.draw.lines(self.screen, suit_color[suit], False, lines, line_width)
 
 		# Cards in deck
 		draw_text(f"Deck: {len(self.game.board.deck.cards)}", font, spacing * 2, spacing)
 
 		# Score
-		draw_text(f"Score: {self.game.board.calculate_score()}", font, spacing * 2 + (spacing + card_img_width) * 2, spacing)
+		score, longest_chains = self.game.board.calculate_score()
+		draw_text(f"Score: {score}", font, spacing * 2 + (spacing + card_img_width) * 2, spacing)
+
+		# Chain lines
+		draw_chains(longest_chains)
 
 		# Market
-		for i in range(len(self.game.board.market)):
+		for i in range(3):
 			draw_text(f"Cost: {2 - i}", font, market_x + (card_img_width + spacing) * i + spacing, market_y + spacing)
+		for i in range(len(self.game.board.market)):
 			card = self.game.board.market[i]
 			show_card(card.id, market_x + (card_img_width + spacing) * i, market_y + spacing * 5)
 

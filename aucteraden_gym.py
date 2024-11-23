@@ -1,4 +1,5 @@
 
+import time
 from aucteraden.agent import ModelGymBot, OneMoveScoreGymBot, RandomGymBot
 from aucteraden.models import MultiOutputChanneledModel, OneLayerModel
 import gymnasium as gym
@@ -34,6 +35,7 @@ agent = OneMoveScoreGymBot(25, 4)
 
 while render_mode == "human":
 	observation, info = env.reset()
+	env.render()
 
 	episode_over = False
 	while not episode_over:
@@ -42,6 +44,7 @@ while render_mode == "human":
 		episode_over = terminated or truncated
 
 	env.render()
+	time.sleep(5)
 
 print("Terminated, press any key...")
 input()

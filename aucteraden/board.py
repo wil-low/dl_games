@@ -106,8 +106,8 @@ class Board:
 
 	def chain_score(self, chain):
 		score = 0
-		first_ace = chain[0].type == CardType.ace
-		last_crowns = chain[-1].type == CardType.crowns
+		first_ace = chain[0][0].type == CardType.ace
+		last_crowns = chain[-1][0].type == CardType.crowns
 		if first_ace and last_crowns:
 			score = 4
 		elif first_ace:
@@ -143,7 +143,7 @@ class Board:
 			if card is None or suit not in card.suits:
 				return
 			current_num = card.type
-			chain.append(card)  # Add current card to the chain
+			chain.append((card, c, r))  # Add current card to the chain
 			#print(f"append {suit} - {r}, {c}: {chain}")
 			dead_end = True
 			# Explore all four possible neighbors
@@ -199,7 +199,7 @@ class Board:
 			#print(f"Longest chain for suit {suit}: {list(map(str, chain))}, score: {ch_score}")
 			score += ch_score
 
-		return score
+		return score, longest_chains
 
 	def is_valid_move(self, move, check_payment):
 		if move.churn_market:

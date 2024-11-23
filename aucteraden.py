@@ -73,7 +73,7 @@ def main():
 			if args.verbose:
 				print(f"\n==== Game {i} finished at move {counter} ({turn_counter}) ====", file=file)
 			print(game.board, file=file)
-			score = game.board.calculate_score()
+			score, _ = game.board.calculate_score()
 			print(f"{i};score;{score}", file=file)
 
 			sum_score += score
