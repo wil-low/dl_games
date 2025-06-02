@@ -39,7 +39,7 @@ Custom environments compatible with OpenAI Gymnasium, enabling:
    ```bash
    git clone https://github.com/wil-low/dl_games.git
    cd dl_games
-````
+   ```
 
 2. **Install Dependencies**:
    Ensure you have Python 3.8+ installed. Then, install required packages:
